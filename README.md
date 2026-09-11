@@ -61,6 +61,14 @@ pnpm dev
 Model binaries are never committed. `pnpm models:fetch` verifies them against
 `scripts/models.checksums.json` on every run and re-downloads on a mismatch.
 
+`earshot` is a GitHub dependency, and pnpm fetches it over SSH whatever the
+specifier says. With only HTTPS access to GitHub, configure the rewrite CI
+uses (see [decision 0004](docs/decisions/0004-github-dependencies-need-an-https-rewrite-in-ci.md)):
+
+```sh
+git config --global url."https://github.com/".insteadOf git@github.com:
+```
+
 ## Scripts
 
 | Script                      | What it does                                 |

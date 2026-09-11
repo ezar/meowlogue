@@ -20,6 +20,14 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Fetch GitHub git dependencies over HTTPS
+        # pnpm records GitHub dependencies by their canonical SSH URL in the
+        # lockfile, whatever specifier package.json uses. Runners have no SSH
+        # key, so `pnpm install` dies on `Permission denied (publickey)` while
+        # fetching earshot. This rewrite is what a developer machine with
+        # GitHub access effectively has; it makes the runner behave the same.
+        run: 'git config --global url."https://github.com/".insteadOf git@github.com:'
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm run format:check
       - run: pnpm run lint
@@ -36,6 +44,14 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Fetch GitHub git dependencies over HTTPS
+        # pnpm records GitHub dependencies by their canonical SSH URL in the
+        # lockfile, whatever specifier package.json uses. Runners have no SSH
+        # key, so `pnpm install` dies on `Permission denied (publickey)` while
+        # fetching earshot. This rewrite is what a developer machine with
+        # GitHub access effectively has; it makes the runner behave the same.
+        run: 'git config --global url."https://github.com/".insteadOf git@github.com:'
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       # The M0 debug page does not need the models: earshot is absent, so

@@ -8,6 +8,12 @@ importers:
 
   .:
     dependencies:
+      '@mediapipe/tasks-audio':
+        specifier: 0.10.21
+        version: 0.10.21
+      earshot:
+        specifier: github:ezar/earshot#v0.3.0
+        version: git+https://git@github.com:ezar/earshot.git#f23f60846b09f07ad5fbfe26b3d269eba1b2d848(@mediapipe/tasks-audio@0.10.21)
       react:
         specifier: ^19.3.0
         version: 19.3.0
@@ -455,6 +461,9 @@ packages:
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
 
+  '@mediapipe/tasks-audio@0.10.21':
+    resolution: {integrity: sha512-WR89YwGkzsnOPrsrb8m4nfFMH3scMNJXq2PFA2rr8brcagJ+795XUXDgTHzfakcAp757LvpZh/AAQJ/eJvii0A==}
+
   '@oxc-project/types@0.149.0':
     resolution: {integrity: sha512-Efcc+iF0j3Bf67YjEqIqWXbX5XddXoK/Mw4K1/JuXwRCZ8N16VR7iT23nlCc9XrveFVh/E5Rqs2StT0V8v9LdA==}
 
@@ -875,6 +884,21 @@ packages:
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
+
+  earshot@git+https://git@github.com:ezar/earshot.git#f23f60846b09f07ad5fbfe26b3d269eba1b2d848:
+    resolution: {commit: f23f60846b09f07ad5fbfe26b3d269eba1b2d848, repo: git@github.com:ezar/earshot.git, type: git}
+    version: 0.3.0
+    peerDependencies:
+      '@huggingface/transformers': '>=3'
+      '@mediapipe/tasks-audio': '>=0.10'
+      '@tensorflow/tfjs': '>=4'
+    peerDependenciesMeta:
+      '@huggingface/transformers':
+        optional: true
+      '@mediapipe/tasks-audio':
+        optional: true
+      '@tensorflow/tfjs':
+        optional: true
 
   electron-to-chromium@1.5.427:
     resolution: {integrity: sha512-n14zb3FdsChZ2BNobqNHAJMcP3ifFv4paox2LvCrfVAQcqGiSURgbJl+PfMpHVCNFkStnNc+RRVtPBTVW5PDgw==}
@@ -1971,6 +1995,8 @@ snapshots:
 
   '@keyv/serialize@1.1.1': {}
 
+  '@mediapipe/tasks-audio@0.10.21': {}
+
   '@oxc-project/types@0.149.0': {}
 
   '@playwright/test@1.63.0':
@@ -2326,6 +2352,10 @@ snapshots:
   deep-is@0.1.4: {}
 
   detect-libc@2.1.2: {}
+
+  earshot@git+https://git@github.com:ezar/earshot.git#f23f60846b09f07ad5fbfe26b3d269eba1b2d848(@mediapipe/tasks-audio@0.10.21):
+    optionalDependencies:
+      '@mediapipe/tasks-audio': 0.10.21
 
   electron-to-chromium@1.5.427: {}
 

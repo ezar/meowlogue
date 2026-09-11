@@ -68,15 +68,31 @@ describe('formatters', () => {
 });
 
 describe('contourDirection', () => {
+  // earshot reports the slope in semitones per second, not Hz per second, so
+  // the numbers here are musical intervals: 4 st/s is a clear rise, 1 st/s is
+  // room-level wobble.
   it('reads rising, falling and flat contours', () => {
-    expect(contourDirection(120)).toBe('rising');
-    expect(contourDirection(-120)).toBe('falling');
-    expect(contourDirection(10)).toBe('flat');
+    expect(contourDirection(4.2)).toBe('rising');
+    expect(contourDirection(-4.2)).toBe('falling');
+    expect(contourDirection(1)).toBe('flat');
+    expect(contourDirection(0)).toBe('flat');
+  });
+
+  it('treats the tolerance as exclusive at the boundary', () => {
+    expect(contourDirection(2)).toBe('flat');
+    expect(contourDirection(2.01)).toBe('rising');
+    expect(contourDirection(-2)).toBe('flat');
+    expect(contourDirection(-2.01)).toBe('falling');
   });
 
   it('honours a custom flat tolerance', () => {
-    expect(contourDirection(50, 100)).toBe('flat');
-    expect(contourDirection(50, 10)).toBe('rising');
+    expect(contourDirection(3, 5)).toBe('flat');
+    expect(contourDirection(3, 1)).toBe('rising');
+  });
+
+  it('calls a non-finite slope flat rather than guessing', () => {
+    expect(contourDirection(Number.NaN)).toBe('flat');
+    expect(contourDirection(Number.POSITIVE_INFINITY)).toBe('flat');
   });
 });
 

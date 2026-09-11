@@ -3,7 +3,6 @@ import { describeStatus, type StatusTone } from '@/lib/engine-status';
 
 interface Props {
   readonly status: EngineStatus;
-  readonly earshotAvailable: boolean | null;
 }
 
 const TONE_CLASS: Record<StatusTone, string> = {
@@ -14,8 +13,8 @@ const TONE_CLASS: Record<StatusTone, string> = {
 };
 
 /** A single banner describing what the engine is doing, or why it is not. */
-export function EngineStatusBanner({ status, earshotAvailable }: Props) {
-  const { tone, title, detail } = describeStatus(status, earshotAvailable);
+export function EngineStatusBanner({ status }: Props) {
+  const { tone, title, detail } = describeStatus(status);
   return (
     <div className={`rounded-xl p-4 ring-1 ${TONE_CLASS[tone]}`} role="status" aria-live="polite">
       <p className="text-sm font-semibold">{title}</p>

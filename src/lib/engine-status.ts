@@ -19,25 +19,8 @@ export interface StatusMessage {
  * itself a failure.
  *
  * @param status Current engine state.
- * @param earshotAvailable Result of the availability probe; null while pending.
  */
-export function describeStatus(
-  status: EngineStatus,
-  earshotAvailable: boolean | null,
-): StatusMessage {
-  if (earshotAvailable === false && status.kind !== 'error') {
-    // 'busy', not 'warn': a milestone that has not landed yet is an expected
-    // state, and the design brief keeps alarming colours for actual alarms.
-    return {
-      tone: 'busy',
-      title: 'earshot is not wired up yet',
-      detail:
-        'meowlogue consumes the audio engine from github:ezar/earshot at a release tag. ' +
-        'No tag exists yet, so there is nothing to capture, detect or classify. ' +
-        'Everything else on this page is live and will light up the moment the tag lands.',
-    };
-  }
-
+export function describeStatus(status: EngineStatus): StatusMessage {
   switch (status.kind) {
     case 'idle':
       return { tone: 'neutral', title: 'Idle', detail: 'Not listening. Press Start to begin.' };

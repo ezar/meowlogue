@@ -33,5 +33,17 @@ export default defineConfig({
   build: {
     target: 'es2022',
     sourcemap: true,
+    /**
+     * Never inline earshot's AudioWorklet processor.
+     *
+     * It is small enough that Vite would turn it into a `data:` URL, and
+     * `audioWorklet.addModule()` does not reliably accept one — earshot's own
+     * README flags this and recommends emitting it as a real asset when the
+     * target browsers are uncertain. Meowlogue targets phones, iOS Safari
+     * included, so it always gets a real URL. Everything else keeps Vite's
+     * default behaviour.
+     */
+    assetsInlineLimit: (filePath: string) =>
+      filePath.includes('capture-worklet') ? false : undefined,
   },
 });

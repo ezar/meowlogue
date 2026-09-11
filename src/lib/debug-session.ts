@@ -1,4 +1,4 @@
-import type { DetectedEvent, VocalizationType } from '@/engine';
+import type { MeowEvent, VocalizationType } from '@/engine';
 
 /**
  * Session bookkeeping for the M0 debug page.
@@ -46,7 +46,7 @@ export function median(values: readonly number[]): number {
 }
 
 /** Builds a {@link SessionSummary} over the detections of one session. */
-export function summarizeSession(events: readonly DetectedEvent[]): SessionSummary {
+export function summarizeSession(events: readonly MeowEvent[]): SessionSummary {
   const byType = emptyTypeCounts();
   let possibleHuman = 0;
   let totalDurationMs = 0;
@@ -96,27 +96,38 @@ export interface ExportedEvent {
   readonly startedAt: string;
   readonly durationMs: number;
   readonly type: VocalizationType;
-  readonly typeConfidence: number;
+  /** The raw AudioSet label that triggered the detection. */
+  readonly triggerLabel: string;
+  readonly confidence: number;
   readonly possibleHuman: boolean;
-  readonly topClasses: readonly { readonly label: string; readonly score: number }[];
+  readonly syllables: number;
+  readonly peakDbfs: number;
+  readonly classes: readonly { readonly label: string; readonly score: number }[];
+  readonly pitch: {
+    readonly medianF0Hz: number;
+    readonly minF0Hz: number;
+    readonly maxF0Hz: number;
+    readonly voicedFraction: number;
+    readonly contourSlopeSemitonesPerSecond: number;
+  };
   readonly features: {
-    readonly pitch: DetectedEvent['features']['pitch'];
-    readonly syllableCount: number;
-    readonly peakRmsDbfs: number;
-    readonly spectralCentroidMedianHz: number;
-    readonly embeddingMean?: readonly number[];
-    readonly embeddingMax?: readonly number[];
-    readonly melThumbnail?: {
-      readonly bands: number;
-      readonly frames: number;
-      readonly data: readonly number[];
-    };
+    readonly rmsDbfs: number;
+    readonly spectralCentroidHz: number;
+    readonly spectralFlatness: number;
+    readonly amplitudeModulationHz: number;
+    readonly amplitudeModulationDepth: number;
+  };
+  readonly embedding?: readonly number[];
+  readonly melThumbnail?: {
+    readonly bands: number;
+    readonly frames: number;
+    readonly data: readonly number[];
   };
 }
 
 /** The document written by the debug page's "export session" action. */
 export interface ExportPayload {
-  readonly schema: 'meowlogue.debug-session/1';
+  readonly schema: 'meowlogue.debug-session/2';
   readonly exportedAt: string;
   readonly userAgent: string;
   readonly summary: SessionSummary;
@@ -126,56 +137,62 @@ export interface ExportPayload {
 /**
  * Converts a session into a JSON-serializable document for offline tuning.
  *
+ * The schema is versioned and this is version 2: version 1 described the event
+ * shape Meowlogue guessed before earshot shipped, and nothing ever wrote it.
+ *
  * @param events Detections in the order they fired.
  * @param userAgent Reported so a capture can be traced back to a device.
  * @param options See {@link ExportOptions}.
  */
 export function toExportPayload(
-  events: readonly DetectedEvent[],
+  events: readonly MeowEvent[],
   userAgent: string,
   options: ExportOptions = {},
 ): ExportPayload {
   const { includeEmbeddings = false, includeThumbnails = false } = options;
 
   return {
-    schema: 'meowlogue.debug-session/1',
+    schema: 'meowlogue.debug-session/2',
     exportedAt: new Date().toISOString(),
     userAgent,
     summary: summarizeSession(events),
     events: events.map((event): ExportedEvent => {
-      const { features } = event;
+      const { features, pitch, melThumbnail } = event;
       return {
         id: event.id,
         startedAt: new Date(event.startedAt).toISOString(),
         durationMs: event.durationMs,
         type: event.type,
-        typeConfidence: event.typeConfidence,
+        triggerLabel: event.triggerLabel,
+        confidence: event.confidence,
         possibleHuman: event.possibleHuman,
-        topClasses: event.topClasses.map((entry) => ({
-          label: entry.label,
-          score: entry.score,
-        })),
-        features: {
-          pitch: features.pitch,
-          syllableCount: features.syllableCount,
-          peakRmsDbfs: features.peakRmsDbfs,
-          spectralCentroidMedianHz: features.spectralCentroidMedianHz,
-          ...(includeEmbeddings
-            ? {
-                embeddingMean: Array.from(features.embeddingMean),
-                embeddingMax: Array.from(features.embeddingMax),
-              }
-            : {}),
-          ...(includeThumbnails
-            ? {
-                melThumbnail: {
-                  bands: features.melThumbnail.bands,
-                  frames: features.melThumbnail.frames,
-                  data: Array.from(features.melThumbnail.data),
-                },
-              }
-            : {}),
+        syllables: event.syllables,
+        peakDbfs: event.peakDbfs,
+        classes: event.classes.map((entry) => ({ label: entry.label, score: entry.score })),
+        pitch: {
+          medianF0Hz: pitch.medianF0Hz,
+          minF0Hz: pitch.minF0Hz,
+          maxF0Hz: pitch.maxF0Hz,
+          voicedFraction: pitch.voicedFraction,
+          contourSlopeSemitonesPerSecond: pitch.contourSlopeSemitonesPerSecond,
         },
+        features: {
+          rmsDbfs: features.rmsDbfs,
+          spectralCentroidHz: features.spectralCentroidHz,
+          spectralFlatness: features.spectralFlatness,
+          amplitudeModulationHz: features.amplitudeModulationHz,
+          amplitudeModulationDepth: features.amplitudeModulationDepth,
+        },
+        ...(includeEmbeddings ? { embedding: event.embedding } : {}),
+        ...(includeThumbnails && melThumbnail !== null
+          ? {
+              melThumbnail: {
+                bands: melThumbnail.bands,
+                frames: melThumbnail.frames,
+                data: Array.from(melThumbnail.data),
+              },
+            }
+          : {}),
       };
     }),
   };

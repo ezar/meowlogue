@@ -11,8 +11,9 @@
  *   pnpm models:checksums         record the hashes of what is on disk
  */
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -28,6 +29,7 @@ interface ModelEntry {
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MODELS_DIR = join(ROOT, 'public', 'models');
 const CHECKSUM_FILE = join(ROOT, 'scripts', 'models.checksums.json');
+const WASM_DIR = join(MODELS_DIR, 'wasm');
 
 /** The P0 model set (spec 6.1). Both are YAMNet at float32. */
 const MODELS: readonly ModelEntry[] = [
@@ -44,6 +46,57 @@ const MODELS: readonly ModelEntry[] = [
 ];
 
 type ChecksumMap = Record<string, string>;
+
+/**
+ * Copies MediaPipe's WASM runtime next to the models.
+ *
+ * earshot never hardcodes an asset location and nothing is fetched from a CDN
+ * at runtime (spec section 11: no network calls beyond model downloads and the
+ * app itself), so the runtime has to be served from our own origin. These files
+ * are not downloaded: they come from the `@mediapipe/tasks-audio` version the
+ * lockfile pins, which is what makes them reproducible.
+ *
+ * Both the SIMD and non-SIMD builds are copied because MediaPipe's
+ * `FilesetResolver` chooses between them from what the browser reports.
+ */
+async function copyWasmAssets(): Promise<void> {
+  const require = createRequire(import.meta.url);
+  let packageEntry: string;
+  try {
+    packageEntry = require.resolve('@mediapipe/tasks-audio');
+  } catch {
+    throw new Error(
+      '@mediapipe/tasks-audio is not installed. Run `pnpm install` before `pnpm models:fetch`.',
+    );
+  }
+
+  // The entry point sits in the package root or in a build subdirectory; the
+  // `wasm` directory is a sibling of one or the other.
+  let directory = dirname(packageEntry);
+  let source: string | null = null;
+  for (let depth = 0; depth < 4; depth += 1) {
+    const candidate = join(directory, 'wasm');
+    if (existsSync(candidate)) {
+      source = candidate;
+      break;
+    }
+    directory = dirname(directory);
+  }
+  if (source === null) {
+    throw new Error(`could not find the wasm directory near ${packageEntry}`);
+  }
+
+  await mkdir(WASM_DIR, { recursive: true });
+  await cp(source, WASM_DIR, { recursive: true });
+
+  let totalBytes = 0;
+  for (const name of await readdir(WASM_DIR)) {
+    totalBytes += (await stat(join(WASM_DIR, name))).size;
+  }
+  console.log(
+    `· wasm/: MediaPipe runtime copied from the pinned package (${formatMb(totalBytes)})`,
+  );
+}
 
 function sha256(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex');
@@ -117,6 +170,8 @@ async function main(): Promise<void> {
       console.log(`✓ ${model.file}: checksum verified`);
     }
   }
+
+  await copyWasmAssets();
 
   if (writeChecksums) {
     await writeFile(CHECKSUM_FILE, `${JSON.stringify(recorded, null, 2)}\n`);

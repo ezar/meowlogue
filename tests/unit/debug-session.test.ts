@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { median, summarizeSession, toExportPayload } from '@/lib/debug-session';
-import { makeEvent, makeFeatures } from './fixtures/events';
+import { makeMeowEvent } from './fixtures/events';
 
 describe('median', () => {
   it('returns 0 for an empty sample', () => {
@@ -34,10 +34,10 @@ describe('summarizeSession', () => {
   it('counts by type and flags possible-human events separately', () => {
     const base = Date.UTC(2026, 8, 11, 7, 0, 0);
     const summary = summarizeSession([
-      makeEvent({ id: 'a', type: 'meow', startedAt: base, durationMs: 500 }),
-      makeEvent({ id: 'b', type: 'meow', startedAt: base + 1_000, durationMs: 700 }),
-      makeEvent({ id: 'c', type: 'purr', startedAt: base + 2_000, durationMs: 9_000 }),
-      makeEvent({
+      makeMeowEvent({ id: 'a', type: 'meow', startedAt: base, durationMs: 500 }),
+      makeMeowEvent({ id: 'b', type: 'meow', startedAt: base + 1_000, durationMs: 700 }),
+      makeMeowEvent({ id: 'c', type: 'purr', startedAt: base + 2_000, durationMs: 9_000 }),
+      makeMeowEvent({
         id: 'd',
         type: 'meow',
         startedAt: base + 3_000,
@@ -58,8 +58,8 @@ describe('summarizeSession', () => {
   it('measures the span from the first start to the last end', () => {
     const base = Date.UTC(2026, 8, 11, 7, 0, 0);
     const summary = summarizeSession([
-      makeEvent({ id: 'a', startedAt: base, durationMs: 500 }),
-      makeEvent({ id: 'b', startedAt: base + 59_000, durationMs: 1_000 }),
+      makeMeowEvent({ id: 'a', startedAt: base, durationMs: 500 }),
+      makeMeowEvent({ id: 'b', startedAt: base + 59_000, durationMs: 1_000 }),
     ]);
 
     expect(summary.spanMs).toBe(60_000);
@@ -68,35 +68,42 @@ describe('summarizeSession', () => {
 });
 
 describe('toExportPayload', () => {
-  const events = [makeEvent()];
+  const events = [makeMeowEvent()];
 
   it('omits embeddings and thumbnails by default', () => {
     const payload = toExportPayload(events, 'test-agent');
     const [event] = payload.events;
 
-    expect(payload.schema).toBe('meowlogue.debug-session/1');
+    expect(payload.schema).toBe('meowlogue.debug-session/2');
     expect(payload.userAgent).toBe('test-agent');
-    expect(event?.features.embeddingMean).toBeUndefined();
-    expect(event?.features.melThumbnail).toBeUndefined();
-    expect(event?.features.pitch.f0MedianHz).toBe(520);
+    expect(event?.embedding).toBeUndefined();
+    expect(event?.melThumbnail).toBeUndefined();
+    expect(event?.pitch.medianF0Hz).toBe(520);
   });
 
   it('includes embeddings as plain arrays when asked', () => {
     const payload = toExportPayload(events, 'test-agent', { includeEmbeddings: true });
     const [event] = payload.events;
 
-    expect(event?.features.embeddingMean).toHaveLength(1024);
-    expect(Array.isArray(event?.features.embeddingMean)).toBe(true);
+    expect(event?.embedding).toHaveLength(1024);
+    expect(Array.isArray(event?.embedding)).toBe(true);
   });
 
   it('includes thumbnails as plain arrays when asked', () => {
-    const payload = toExportPayload([makeEvent({ features: makeFeatures() })], 'test-agent', {
+    const payload = toExportPayload([makeMeowEvent()], 'test-agent', {
       includeThumbnails: true,
     });
-    const thumbnail = payload.events[0]?.features.melThumbnail;
+    const thumbnail = payload.events[0]?.melThumbnail;
 
     expect(thumbnail?.bands).toBe(64);
     expect(thumbnail?.data).toHaveLength(64 * 24);
+  });
+
+  it('omits the thumbnail key entirely when an event has none', () => {
+    const payload = toExportPayload([makeMeowEvent({ melThumbnail: null })], 'test-agent', {
+      includeThumbnails: true,
+    });
+    expect(payload.events[0]?.melThumbnail).toBeUndefined();
   });
 
   it('survives a JSON round trip', () => {

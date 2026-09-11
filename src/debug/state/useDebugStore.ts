@@ -1,12 +1,10 @@
 import { create } from 'zustand';
 import {
-  AudioEngineError,
-  createAudioEngine,
-  isEarshotAvailable,
-  type AudioEngine,
-  type DetectedEvent,
+  createListener,
   type EngineStatus,
+  type Listener,
   type LevelUpdate,
+  type MeowEvent,
   type Unsubscribe,
 } from '@/engine';
 import { toExportPayload, type ExportOptions } from '@/lib/debug-session';
@@ -19,18 +17,17 @@ const IDLE_LEVEL: LevelUpdate = { rmsDbfs: Number.NEGATIVE_INFINITY, noiseFloorD
 interface DebugState {
   readonly status: EngineStatus;
   readonly level: LevelUpdate;
-  readonly events: readonly DetectedEvent[];
-  /** null until the availability probe has run. */
-  readonly earshotAvailable: boolean | null;
-  readonly probeEarshot: () => Promise<void>;
+  readonly events: readonly MeowEvent[];
+  /** True once the YAMNet embedder loaded; identity needs it (spec 6.4). */
+  readonly hasEmbedder: boolean;
   readonly start: () => Promise<void>;
   readonly stop: () => Promise<void>;
   readonly clear: () => void;
   readonly exportSession: (options?: ExportOptions) => string;
 }
 
-/** Live engine handle, kept outside the store so React never diffs it. */
-let engine: AudioEngine | null = null;
+/** Live listener handle, kept outside the store so React never diffs it. */
+let listener: Listener | null = null;
 let subscriptions: Unsubscribe[] = [];
 
 function unsubscribeAll(): void {
@@ -42,57 +39,36 @@ export const useDebugStore = create<DebugState>((set, get) => ({
   status: { kind: 'idle' },
   level: IDLE_LEVEL,
   events: [],
-  earshotAvailable: null,
-
-  probeEarshot: async () => {
-    set({ earshotAvailable: await isEarshotAvailable() });
-  },
+  hasEmbedder: false,
 
   start: async () => {
-    if (get().status.kind === 'listening') return;
-    set({ status: { kind: 'loading-models' } });
+    if (get().status.kind !== 'idle' && get().status.kind !== 'error') return;
 
-    try {
-      const created = await createAudioEngine();
-      engine = created;
-      subscriptions = [
-        created.on('status', (status) => {
-          set({ status });
-        }),
-        created.on('level', (level) => {
-          set({ level });
-        }),
-        created.on('detection', (event) => {
-          const next = [event, ...get().events];
-          set({ events: next.length > MAX_EVENTS ? next.slice(0, MAX_EVENTS) : next });
-        }),
-      ];
-      await created.start();
-    } catch (error) {
-      unsubscribeAll();
-      engine = null;
-      set({
-        status: {
-          kind: 'error',
-          error:
-            error instanceof AudioEngineError
-              ? error.toEngineError()
-              : {
-                  code: 'internal',
-                  message: error instanceof Error ? error.message : String(error),
-                  cause: error,
-                },
-        },
-      });
-    }
+    const session = createListener();
+    listener = session;
+    subscriptions = [
+      session.on('status', (status) => {
+        set({ status, hasEmbedder: session.hasEmbedder });
+      }),
+      session.on('level', (level) => {
+        set({ level });
+      }),
+      session.on('detection', (event) => {
+        const next = [event, ...get().events];
+        set({ events: next.length > MAX_EVENTS ? next.slice(0, MAX_EVENTS) : next });
+      }),
+    ];
+
+    await session.start();
   },
 
   stop: async () => {
-    const current = engine;
+    const session = listener;
     unsubscribeAll();
-    engine = null;
-    set({ status: { kind: 'idle' }, level: IDLE_LEVEL });
-    if (current !== null) await current.dispose();
+    listener = null;
+    set({ level: IDLE_LEVEL });
+    if (session !== null) await session.stop();
+    set({ status: { kind: 'idle' } });
   },
 
   clear: () => {

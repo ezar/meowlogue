@@ -1,7 +1,19 @@
 /**
- * The audio engine seam. Application code imports from here and never from
- * `earshot` directly. See docs/decisions/0001-earshot-integration-seam.md.
+ * The engine seam.
+ *
+ * Application code imports from here; only modules inside `src/engine/` import
+ * from `earshot`. See docs/decisions/0002-the-seam-is-a-directory.md.
  */
 export * from './types';
 export * from './config';
-export { AudioEngineError, createAudioEngine, isEarshotAvailable } from './earshot-adapter';
+export { createListener, estimateNoiseFloorDbfs, type ListenerOptions } from './listener';
+export { stackLogMel } from './mel';
+export {
+  TRIGGER_CLASSES,
+  lowestTriggerScore,
+  passesClassPolicy,
+  thresholdFor,
+  toDetectorConfig,
+  toMeowEvent,
+  vocalizationTypeFor,
+} from './vocalization';

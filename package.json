@@ -26,6 +26,8 @@
     "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test"
   },
   "dependencies": {
+    "@mediapipe/tasks-audio": "0.10.21",
+    "earshot": "github:ezar/earshot#v0.3.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "zustand": "^5.0.15"

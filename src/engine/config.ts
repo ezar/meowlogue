@@ -1,21 +1,79 @@
-import type {
-  CaptureOptions,
-  DetectionThresholds,
-  EngineOptions,
-  SegmentationOptions,
-} from './types';
-
 /**
  * Meowlogue's detection policy.
  *
  * These are the app's numbers, not earshot's: earshot supplies the mechanism
- * and meowlogue decides where the thresholds sit for a cat household. Every
+ * and Meowlogue decides where the thresholds sit for a cat household. Every
  * value below is quoted from section 6.2 of the spec, which also flags them as
  * starting points to be tuned against the CatMeows evaluation set.
+ *
+ * The policy is stated in the spec's own units — milliseconds, dB — and
+ * translated into earshot's (seconds) in exactly one place,
+ * `toDetectorConfig` in `vocalization.ts`.
  */
 
-/** YAMNet's input contract: 16 kHz mono, 0.975 s windows, 0.4875 s hop (spec 6.1). */
-export const CAPTURE: CaptureOptions = {
+/** Per-class score thresholds for treating a window as a candidate (spec 6.2). */
+export interface DetectionThresholds {
+  readonly meow: number;
+  readonly cat: number;
+  readonly purr: number;
+  readonly hiss: number;
+  readonly caterwaul: number;
+  /** Speech score above which an event is flagged `possibleHuman`. */
+  readonly speechGuard: number;
+}
+
+/** Segmentation policy, all in the units named by each field (spec 6.2). */
+export interface SegmentationOptions {
+  /** Level above the noise floor at which a segment opens, in dB. */
+  readonly onsetAboveNoiseFloorDb: number;
+  /**
+   * Silence needed to close a segment, in milliseconds (spec 6.2).
+   *
+   * NOT currently applied. earshot v0.3.0 closes a segment by level
+   * hysteresis — the envelope dropping below a `closeDb` threshold — with no
+   * timed release. The value is kept because the spec states it, and because
+   * the honest fix is to add a timed release to earshot with tests, tag a
+   * release and bump the tag here (spec section 11), not to quietly drop a
+   * requirement.
+   */
+  readonly releaseMs: number;
+  /** Segments shorter than this are discarded, in milliseconds. */
+  readonly minDurationMs: number;
+  /** Cap for non-purr events, in milliseconds. */
+  readonly maxDurationMs: number;
+  /**
+   * Cap for sustained purr segments, in milliseconds.
+   *
+   * Not passed to the detector: earshot applies one duration cap to every
+   * class, and raising it to 60 s would let a minute of room noise become a
+   * single event. Purr time is measured separately (spec 6.2).
+   */
+  readonly maxPurrDurationMs: number;
+  /** Segments closer than this are merged into one event, in milliseconds. */
+  readonly mergeGapMs: number;
+  /** Minimum spacing between emitted events, in milliseconds. */
+  readonly debounceMs: number;
+  /** Envelope resolution used by the segmenter, in milliseconds. */
+  readonly envelopeHopMs: number;
+}
+
+/** Audio capture framing, fixed by YAMNet's input contract (spec 6.1). */
+export interface CaptureFraming {
+  /** Capture sample rate in Hz. YAMNet expects 16000. */
+  readonly sampleRateHz: number;
+  /** Analysis window length in milliseconds. */
+  readonly windowMs: number;
+  /** Analysis hop length in milliseconds. */
+  readonly hopMs: number;
+}
+
+/**
+ * YAMNet's input contract: 16 kHz mono, 0.975 s windows, 0.4875 s hop
+ * (spec 6.1). earshot owns the framing and exports the same values as
+ * `SAMPLE_RATE_HZ`, `WINDOW_SECONDS` and `HOP_SECONDS`; these are asserted
+ * against those in the unit tests so the two cannot drift.
+ */
+export const CAPTURE: CaptureFraming = {
   sampleRateHz: 16_000,
   windowMs: 975,
   hopMs: 487.5,
@@ -23,6 +81,7 @@ export const CAPTURE: CaptureOptions = {
 
 /**
  * Per-class score thresholds for treating a window as a candidate.
+ *
  * Purr sits lower because purrs are quiet at distance; hiss and caterwaul sit
  * higher because they are the classes YAMNet most often reaches for on noise.
  */
@@ -79,7 +138,8 @@ export const IDENTITY_GATE = {
 } as const;
 
 /**
- * Where `pnpm models:fetch` puts the YAMNet `.tflite` files.
+ * Where `pnpm models:fetch` puts the YAMNet `.tflite` files and MediaPipe's
+ * WASM runtime.
  *
  * Derived from Vite's `BASE_URL` rather than hardcoded to the site root, so
  * the app works when served from a subpath as well as from `/`. A GitHub Pages
@@ -88,12 +148,12 @@ export const IDENTITY_GATE = {
  */
 export const MODEL_BASE_URL = `${import.meta.env.BASE_URL}models/`;
 
-/** The default engine options the debug page and, later, Listen both use. */
-export const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
-  capture: CAPTURE,
-  thresholds: THRESHOLDS,
-  segmentation: SEGMENTATION,
-  modelBaseUrl: MODEL_BASE_URL,
-  clipPaddingMs: CLIP_PADDING_MS,
-  captureClips: true,
-};
+/** Model and runtime URLs handed to earshot; it never supplies defaults. */
+export const MODEL_URLS = {
+  classifierUrl: `${MODEL_BASE_URL}yamnet-classifier.tflite`,
+  embedderUrl: `${MODEL_BASE_URL}yamnet-embedder.tflite`,
+  wasmBaseUrl: `${MODEL_BASE_URL}wasm`,
+} as const;
+
+/** Analysis windows retained for stacking an event's log-mel thumbnail. */
+export const THUMBNAIL_WINDOW_HISTORY = 24;

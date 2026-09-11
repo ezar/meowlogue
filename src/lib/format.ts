@@ -74,16 +74,23 @@ export function formatDuration(ms: number): string {
 /**
  * Describes the direction of a pitch contour (spec 6.5 cold-start hints).
  *
- * @param slopeHzPerSec Slope of the linear fit over the f0 contour, Hz/s.
- * @param flatToleranceHzPerSec Slope magnitude treated as flat, Hz/s.
+ * earshot reports the slope in **semitones** per second, not Hz per second.
+ * That is the better unit for this job: a 100 Hz rise means something quite
+ * different starting from 300 Hz than from 900 Hz, while a semitone is the
+ * same musical interval either way, so one tolerance works across cats.
+ *
+ * @param slopeSemitonesPerSec Slope of the voiced f0 contour, semitones/s.
+ * @param flatToleranceSemitonesPerSec Slope magnitude treated as flat,
+ *   semitones/s. The default of 2 is roughly a whole tone per second, below
+ *   which a call reads as level rather than as rising or falling.
  */
 export function contourDirection(
-  slopeHzPerSec: number,
-  flatToleranceHzPerSec = 40,
+  slopeSemitonesPerSec: number,
+  flatToleranceSemitonesPerSec = 2,
 ): 'rising' | 'flat' | 'falling' {
-  if (!Number.isFinite(slopeHzPerSec)) return 'flat';
-  if (slopeHzPerSec > flatToleranceHzPerSec) return 'rising';
-  if (slopeHzPerSec < -flatToleranceHzPerSec) return 'falling';
+  if (!Number.isFinite(slopeSemitonesPerSec)) return 'flat';
+  if (slopeSemitonesPerSec > flatToleranceSemitonesPerSec) return 'rising';
+  if (slopeSemitonesPerSec < -flatToleranceSemitonesPerSec) return 'falling';
   return 'flat';
 }
 

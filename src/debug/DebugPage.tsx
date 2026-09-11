@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useDebugStore } from './state/useDebugStore';
 import { EngineStatusBanner } from './components/EngineStatusBanner';
 import { EventRow } from './components/EventRow';
@@ -18,18 +18,13 @@ export function DebugPage() {
   const status = useDebugStore((state) => state.status);
   const level = useDebugStore((state) => state.level);
   const events = useDebugStore((state) => state.events);
-  const earshotAvailable = useDebugStore((state) => state.earshotAvailable);
-  const probeEarshot = useDebugStore((state) => state.probeEarshot);
+  const hasEmbedder = useDebugStore((state) => state.hasEmbedder);
   const start = useDebugStore((state) => state.start);
   const stop = useDebugStore((state) => state.stop);
   const clear = useDebugStore((state) => state.clear);
   const exportSession = useDebugStore((state) => state.exportSession);
 
   const [includeEmbeddings, setIncludeEmbeddings] = useState(false);
-
-  useEffect(() => {
-    void probeEarshot();
-  }, [probeEarshot]);
 
   const summary = useMemo(() => summarizeSession(events), [events]);
   const listening = status.kind === 'listening' || status.kind === 'loading-models';
@@ -55,7 +50,7 @@ export function DebugPage() {
         </p>
       </header>
 
-      <EngineStatusBanner status={status} earshotAvailable={earshotAvailable} />
+      <EngineStatusBanner status={status} />
 
       <section className="space-y-4 rounded-xl bg-white p-4 ring-1 ring-stone-200">
         <div className="flex flex-wrap gap-2">
@@ -96,6 +91,15 @@ export function DebugPage() {
         </div>
 
         <LevelMeter level={level} active={status.kind === 'listening'} />
+
+        {status.kind === 'listening' && !hasEmbedder && (
+          <p className="rounded-lg bg-amber-50 p-3 text-xs text-amber-900 ring-1 ring-amber-200">
+            Running classifier-only: the YAMNet embedder did not load, so there are no embeddings
+            and cat identity (spec 6.4) cannot be trained. MediaPipe dropped
+            <code className="mx-1 font-mono">AudioEmbedder</code> after 0.10.21 — check that version
+            is the one installed.
+          </p>
+        )}
       </section>
 
       <section className="rounded-xl bg-white p-4 ring-1 ring-stone-200">

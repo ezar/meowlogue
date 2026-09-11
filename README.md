@@ -32,14 +32,20 @@ What is in this repository today:
 ### The earshot dependency
 
 Meowlogue's audio engine is [`earshot`](https://github.com/ezar/earshot), the
-shared engine also used by SteadyHum. Per spec section 11 it is consumed from
-GitHub at a release tag and never copied into this repository.
+shared engine also used by SteadyHum, consumed from GitHub at the `v0.3.0` tag
+and never copied into this repository (spec section 11).
 
-earshot has no release tag yet, so the debug page reports the engine as
-unavailable in plain language and the pipeline does not run. Everything else on
-the page is live. Wiring the real engine up is a two-line change in
-`src/engine/earshot-adapter.ts` — see
-[docs/decisions/0001-earshot-integration-seam.md](docs/decisions/0001-earshot-integration-seam.md).
+earshot ships three composable pieces rather than one object — a microphone, a
+window producer backed by a worker, and a vocalization detector — and
+`src/engine/` is where Meowlogue wires them together and translates between
+earshot's units and its own. See
+[decision 0002](docs/decisions/0002-the-seam-is-a-directory.md).
+
+**The live pipeline does not run yet.** earshot's worker loads MediaPipe
+through a bare module specifier that no browser can resolve, and the override
+that would fix it cannot cross into a worker. The debug page says so plainly
+instead of hanging. Full analysis, and the small change earshot needs, in
+[decision 0003](docs/decisions/0003-earshot-worker-cannot-resolve-mediapipe.md).
 
 ## Getting started
 
@@ -47,7 +53,8 @@ Node `^22.22.2 || ^24.15.0 || >=26` and pnpm.
 
 ```sh
 pnpm install
-pnpm models:fetch   # ~16 MB of YAMNet into public/models/, checksum-verified
+pnpm models:fetch   # ~28 MB into public/models/: YAMNet, checksum-verified,
+                    # plus MediaPipe's WASM runtime from the pinned package
 pnpm dev
 ```
 
@@ -97,9 +104,10 @@ To reproduce a subpath build locally:
 BASE_PATH=/meowlogue/ pnpm run build
 ```
 
-One caveat worth knowing before a public launch: the models are ~17 MB, and
-they, not the code, are this app's real payload. Against Pages' 100 GB/month
-soft bandwidth limit that is roughly 6,000 cold loads. Pages also cannot set
+One caveat worth knowing before a public launch: the models plus MediaPipe's
+WASM runtime are ~28 MB, and they, not the code, are this app's real payload.
+Against Pages' 100 GB/month soft bandwidth limit that is roughly 3,500 cold
+loads. Pages also cannot set
 `Cache-Control`, so the service worker planned for M1 is the only lever there;
 on Vercel the `.tflite` files can be marked `immutable`, which is honest —
 their checksums are pinned in `scripts/models.checksums.json`.

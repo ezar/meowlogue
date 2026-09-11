@@ -70,12 +70,19 @@ config file.
 Playwright against a real production build; pass `CHROMIUM_PATH` if the local
 Chromium does not match the build Playwright expects.
 
-## Known blocker
+## The model path does not run under `pnpm dev`
 
-The live browser pipeline does not run yet: earshot's worker cannot resolve
-`@mediapipe/tasks-audio`, and the fix belongs in earshot. Read
-`docs/decisions/0003-earshot-worker-cannot-resolve-mediapipe.md` before
-touching `src/engine/listener.ts` or the `fixme` end-to-end tests.
+Vite serves workers as ES modules in development whatever `worker.format`
+says, and MediaPipe cannot load in a module worker. So `pnpm dev` gives you
+the page but not the engine: pressing Start there fails.
+
+Anything touching a class score or an embedding has to be exercised against a
+build — `pnpm build && pnpm preview`, or `pnpm test:e2e`, which already does
+exactly that. Capture, levels, features, pitch and segmentation never touch a
+model and work fine in dev.
+
+`worker.format` is `'iife'` for the same reason, and it is **global** in Vite:
+the nightly aggregation worker in spec section 7 will have to be IIFE too.
 
 ## Milestones
 

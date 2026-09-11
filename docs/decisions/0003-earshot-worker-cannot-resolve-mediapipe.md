@@ -1,6 +1,6 @@
 # 0003: earshot's worker cannot resolve MediaPipe in a browser
 
-- Status: open, blocked on earshot
+- Status: resolved in earshot v0.4.0
 - Date: 2026-09-11
 - Milestone: M0
 
@@ -62,7 +62,29 @@ therefore serializable) in the init message, and have the worker import that.
 Either way the change is in earshot, gets tests there, is released under a new
 tag, and the tag is bumped here — the process `CLAUDE.md` already prescribes.
 
-## Meanwhile
+## Resolution
+
+earshot v0.4.0 took the proposed fix: the MediaPipe specifier is now a static
+literal, so the consumer's bundler resolves it and bundles it into the worker
+chunk. Our worker chunk grew from 10.6 kB to 62 kB, which is MediaPipe arriving.
+
+earshot found a second defect at the same time, which this record had not:
+**MediaPipe cannot load in an ES module worker at all.** It loads its WASM glue
+with `importScripts`, which module workers do not support, and its fallback
+wants a `document`. So the engine worker is now a _classic_ worker and
+consumers must set `worker.format: 'iife'`. Their own record is
+`docs/decisions/0007-mediapipe-cannot-load-in-a-module-worker.md`.
+
+That is why 0.4.0 is a MINOR rather than a PATCH, and why earshot's changelog
+says plainly that **0.3.0 should not be used**: on that tag `createEngine`
+cannot load a model in any browser, with no workaround.
+
+Verified here: the three end-to-end tests this record blocked now pass against
+a production build in Chromium — models load from our own origin, the worker
+starts, and the level meter carries a real dBFS value, which only happens once
+windows are coming back from the worker.
+
+## Historical note
 
 The integration is complete and unit-tested; only the live browser path is
 blocked. The debug page reports the failure in plain language rather than

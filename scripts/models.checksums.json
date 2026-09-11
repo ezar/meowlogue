@@ -1,0 +1,4 @@
+{
+  "yamnet-classifier.tflite": "4d8b4a53282dc83ef04e3e7dbc4fbc98082e34e44ed798e16c3a0cdd4c584faf",
+  "yamnet-embedder.tflite": "5e357e61672b6ef7ef27b1804ad01daaa759586f9d63f23125303ca415883bec"
+}

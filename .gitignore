@@ -1,0 +1,21 @@
+node_modules/
+dist/
+dist-ssr/
+coverage/
+*.local
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.tsbuildinfo
+
+# Model binaries are fetched with `pnpm models:fetch`, never committed.
+public/models/*
+!public/models/.gitkeep
+!public/models/README.md
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+.playwright/

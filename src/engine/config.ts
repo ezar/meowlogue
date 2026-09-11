@@ -78,8 +78,15 @@ export const IDENTITY_GATE = {
   mlpMinExamplesPerCat: 30,
 } as const;
 
-/** Where `pnpm models:fetch` puts the YAMNet `.tflite` files. */
-export const MODEL_BASE_URL = '/models/';
+/**
+ * Where `pnpm models:fetch` puts the YAMNet `.tflite` files.
+ *
+ * Derived from Vite's `BASE_URL` rather than hardcoded to the site root, so
+ * the app works when served from a subpath as well as from `/`. A GitHub Pages
+ * project site lives at `/<repo>/`, where a root-relative `/models/` resolves
+ * to the user site and 404s. `BASE_URL` always carries a trailing slash.
+ */
+export const MODEL_BASE_URL = `${import.meta.env.BASE_URL}models/`;
 
 /** The default engine options the debug page and, later, Listen both use. */
 export const DEFAULT_ENGINE_OPTIONS: EngineOptions = {

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { completeOnboarding } from './helpers';
 
 /**
  * M0 end-to-end coverage.
@@ -11,25 +12,27 @@ import { expect, test } from '@playwright/test';
  *
  * They need the models on disk — run `pnpm models:fetch` first.
  */
+// The app opens in onboarding until a household exists and the user finishes,
+// so every test here walks that first. Before onboarding existed these tests
+// landed on the debug page directly; they failed the moment it shipped, which
+// is the right way round.
+test.beforeEach(async ({ page }) => {
+  await completeOnboarding(page);
+});
+
 test.describe('debug page', () => {
   test('renders the page and starts idle', async ({ page }) => {
-    await page.goto('/');
-
     await expect(page.getByRole('heading', { name: 'Meowlogue debug' })).toBeVisible();
     await expect(page.getByRole('status')).toContainText('Idle');
     await expect(page.getByText('Nothing detected yet.')).toBeVisible();
   });
 
   test('disables the export actions until something is detected', async ({ page }) => {
-    await page.goto('/');
-
     await expect(page.getByRole('button', { name: 'Export JSON' })).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Clear' })).toBeDisabled();
   });
 
   test('lists the detection policy the engine runs under', async ({ page }) => {
-    await page.goto('/');
-
     await page.getByRole('group').filter({ hasText: 'Detection policy' }).click();
     await expect(page.getByText('16000 Hz')).toBeVisible();
     await expect(page.getByText('975 ms / 487.5 ms')).toBeVisible();
@@ -44,7 +47,6 @@ test.describe('debug page', () => {
       failures.push(`${request.method()} ${request.url()} failed`);
     });
 
-    await page.goto('/');
     await page.getByRole('button', { name: 'Start listening' }).click();
 
     // Loading YAMNet plus MediaPipe's WASM runtime from our own origin is
@@ -72,7 +74,6 @@ test.describe('debug page', () => {
       }
     });
 
-    await page.goto('/');
     await page.getByRole('button', { name: 'Start listening' }).click();
     await expect(page.getByRole('status')).toContainText('Listening', { timeout: 90_000 });
 
@@ -86,8 +87,6 @@ test.describe('debug page', () => {
   });
 
   test('stops cleanly and returns to idle', async ({ page }) => {
-    await page.goto('/');
-
     await page.getByRole('button', { name: 'Start listening' }).click();
     await expect(page.getByRole('status')).toContainText('Listening', { timeout: 90_000 });
 

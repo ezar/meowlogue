@@ -1,0 +1,15 @@
+import { chromium } from '@playwright/test';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+const out = process.env.OUT;
+await p.goto(process.env.URL, { waitUntil: 'networkidle' });
+await p.screenshot({ path: `${out}/onb-1.png` });
+await p.getByRole('button', { name: 'Empezar' }).click();
+await p.screenshot({ path: `${out}/onb-2.png` });
+await p.getByRole('button', { name: 'Lo entiendo' }).click();
+await p.getByLabel('Nombre').fill('Luna');
+await p.getByRole('button', { name: 'Añadir gato' }).click();
+await p.getByLabel('Nombre').fill('Mia');
+await p.getByRole('button', { name: 'Añadir gato' }).click();
+await p.screenshot({ path: `${out}/onb-3.png`, fullPage: true });
+await b.close();

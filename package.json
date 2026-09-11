@@ -27,6 +27,8 @@
   },
   "dependencies": {
     "@mediapipe/tasks-audio": "0.10.21",
+    "dexie": "^4.4.6",
+    "dexie-react-hooks": "^4.4.0",
     "earshot": "github:ezar/earshot#v0.4.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

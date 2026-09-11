@@ -37,6 +37,21 @@ only in i18n dictionaries — Spanish default, English second. i18n arrives in M
 Detection thresholds are Meowlogue's, not earshot's: earshot supplies the
 mechanism, this repository decides where a cat household's thresholds sit.
 
+## Dependencies
+
+Everything is pinned to the latest version that is actually compatible, not
+simply the latest published. One ceiling is worth knowing about:
+
+- **TypeScript is held at 6.x, not 7.** `typescript-eslint` peers
+  `typescript >=4.8.4 <6.1.0`. Installing TypeScript 7 does not fail the build
+  — it degrades type-aware linting, which is where the `no-explicit-any` and
+  `strictTypeChecked` rules come from. Bump TypeScript only once
+  `typescript-eslint` widens that range.
+
+`tsconfig.app.json` deliberately has no `baseUrl`: it is deprecated in
+TypeScript 6 and removed in 7, and `paths` already resolves relative to the
+config file.
+
 ## Before pushing
 
 `pnpm check` runs format, lint, typecheck and unit tests. `pnpm test:e2e` runs

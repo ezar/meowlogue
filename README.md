@@ -43,6 +43,8 @@ the page is live. Wiring the real engine up is a two-line change in
 
 ## Getting started
 
+Node `^22.22.2 || ^24.15.0 || >=26` and pnpm.
+
 ```sh
 pnpm install
 pnpm models:fetch   # ~16 MB of YAMNet into public/models/, checksum-verified

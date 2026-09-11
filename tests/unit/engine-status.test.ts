@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { MODEL_BASE_URL } from '@/engine';
 import { describeStatus } from '@/lib/engine-status';
 import { levelToFraction } from '@/lib/level';
 
@@ -33,6 +34,11 @@ describe('describeStatus', () => {
     const message = describeStatus({ kind: 'suspended', reason: 'page-hidden' }, true);
     expect(message.title).toBe('Not listening');
     expect(message.detail).toMatch(/iOS/);
+  });
+
+  it('names the real model path rather than a hardcoded root', () => {
+    const message = describeStatus({ kind: 'loading-models' }, true);
+    expect(message.detail).toContain(MODEL_BASE_URL);
   });
 
   it('describes every engine status', () => {

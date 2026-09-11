@@ -1,0 +1,64 @@
+name: Deploy to GitHub Pages
+
+# Spec section 7 names Vercel as the primary target and GitHub Pages as the
+# fallback. This workflow is that fallback, kept working rather than assumed.
+#
+# The app needs no backend and no COOP/COEP headers — earshot passes audio
+# between the worklet and its worker as plain `Float32Array`, never a
+# `SharedArrayBuffer` — so a static host with no header control is enough.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a deploy midway; queue behind the one in flight instead.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Model binaries are never committed, so the site has to fetch them at
+      # build time or every load 404s. Checksums are verified here too.
+      - name: Fetch models
+        run: pnpm models:fetch
+
+      - uses: actions/configure-pages@v5
+
+      # A Pages project site is served from /<repo>/, not the domain root.
+      - name: Build
+        run: pnpm run build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

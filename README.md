@@ -71,6 +71,39 @@ Model binaries are never committed. `pnpm models:fetch` verifies them against
 Where the local Chromium does not match the build Playwright expects, point
 `CHROMIUM_PATH` at it: `CHROMIUM_PATH=/path/to/chromium pnpm test:e2e`.
 
+## Deployment
+
+The app is static: no backend, no accounts, and no need for custom HTTP
+headers — earshot moves audio between the AudioWorklet and its worker as plain
+`Float32Array`, never a `SharedArrayBuffer`, so cross-origin isolation
+(`COOP`/`COEP`) is not required. Any static host will do.
+
+Model binaries are not committed, so **every deployment must run
+`pnpm models:fetch` as a build step** or the app 404s on load.
+
+**Vercel** (primary, per spec section 7). Build `pnpm models:fetch && pnpm run
+build`, output `dist`. Served from the domain root, so no `BASE_PATH` is
+needed.
+
+**GitHub Pages** (fallback). `.github/workflows/pages.yml` deploys `main` on
+every push. A project site is served from `/<repo>/`, which the workflow passes
+as `BASE_PATH`; `vite.config.ts` reads it, and anything referencing an asset by
+absolute path goes through `import.meta.env.BASE_URL` so it follows. Enable it
+once under Settings → Pages → Source → GitHub Actions.
+
+To reproduce a subpath build locally:
+
+```sh
+BASE_PATH=/meowlogue/ pnpm run build
+```
+
+One caveat worth knowing before a public launch: the models are ~17 MB, and
+they, not the code, are this app's real payload. Against Pages' 100 GB/month
+soft bandwidth limit that is roughly 6,000 cold loads. Pages also cannot set
+`Cache-Control`, so the service worker planned for M1 is the only lever there;
+on Vercel the `.tflite` files can be marked `immutable`, which is honest —
+their checksums are pinned in `scripts/models.checksums.json`.
+
 ## Layout
 
 ```

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { AudioEngineError, createAudioEngine, isEarshotAvailable } from '@/engine';
-import { CAPTURE, DEFAULT_ENGINE_OPTIONS, SEGMENTATION, THRESHOLDS } from '@/engine';
+import {
+  CAPTURE,
+  DEFAULT_ENGINE_OPTIONS,
+  MODEL_BASE_URL,
+  SEGMENTATION,
+  THRESHOLDS,
+} from '@/engine';
 
 /**
  * The seam's job is to fail in exactly one recognisable way while earshot is
@@ -50,8 +56,27 @@ describe('detection policy', () => {
     expect(SEGMENTATION.debounceMs).toBeGreaterThanOrEqual(SEGMENTATION.mergeGapMs);
   });
 
-  it('defaults to serving models from the self-hosted path', () => {
-    expect(DEFAULT_ENGINE_OPTIONS.modelBaseUrl).toBe('/models/');
+  it("serves models from the app's own origin, never a hub", () => {
+    expect(DEFAULT_ENGINE_OPTIONS.modelBaseUrl).toBe(MODEL_BASE_URL);
     expect(DEFAULT_ENGINE_OPTIONS.clipPaddingMs).toBe(300);
+  });
+
+  /**
+   * A GitHub Pages project site is served from `/<repo>/`, so a model URL
+   * hardcoded to `/models/` 404s there. Deriving it from Vite's `BASE_URL`
+   * keeps the app deployable at any path; these assertions stop it regressing
+   * back to a root-relative literal.
+   */
+  it('derives the model path from the deployment base', () => {
+    expect(MODEL_BASE_URL.startsWith(import.meta.env.BASE_URL)).toBe(true);
+    expect(MODEL_BASE_URL.endsWith('models/')).toBe(true);
+  });
+
+  it('keeps the model path relative to the base, not the origin root', () => {
+    // Under the test/dev base of '/' the two coincide; the guard is that the
+    // literal is gone, so a subpath build cannot silently break.
+    const withoutBase = MODEL_BASE_URL.slice(import.meta.env.BASE_URL.length);
+    expect(withoutBase).toBe('models/');
+    expect(withoutBase.startsWith('/')).toBe(false);
   });
 });

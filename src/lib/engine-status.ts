@@ -1,4 +1,4 @@
-import type { EngineStatus } from '@/engine';
+import { MODEL_BASE_URL, type EngineStatus } from '@/engine';
 
 /** How prominently a status message should read. */
 export type StatusTone = 'neutral' | 'busy' | 'good' | 'warn';
@@ -45,7 +45,7 @@ export function describeStatus(
       return {
         tone: 'busy',
         title: 'Loading models',
-        detail: 'Fetching the YAMNet classifier and embedder from /models/.',
+        detail: `Fetching the YAMNet classifier and embedder from ${MODEL_BASE_URL}.`,
       };
     case 'listening':
       return {

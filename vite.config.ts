@@ -3,7 +3,18 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
+/**
+ * Public path the app is served from.
+ *
+ * Vercel serves it at the domain root, so the default is `/`. A GitHub Pages
+ * project site serves it at `/<repo>/`, and the Pages workflow sets
+ * `BASE_PATH` accordingly. Anything referencing an asset by absolute path must
+ * go through `import.meta.env.BASE_URL` for this to hold.
+ */
+const base = process.env.BASE_PATH ?? '/';
+
 export default defineConfig({
+  base,
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

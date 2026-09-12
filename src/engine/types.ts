@@ -88,8 +88,27 @@ export interface MeowEvent {
    * when no window was retained for it.
    */
   readonly melThumbnail: MelThumbnail | null;
-  /** YAMNet embedding of the triggering window; empty without an embedder. */
-  readonly embedding: readonly number[];
+  /**
+   * Mean and max pooled YAMNet embedding over the event's windows (spec 6.3),
+   * or null when earshot is running classifier-only and there is none.
+   */
+  readonly embedding: EventEmbedding | null;
+}
+
+/**
+ * An event's pooled YAMNet embedding (spec 6.3).
+ *
+ * Both poolings are kept because identity (spec 6.4) uses both: the mean
+ * describes the whole call, the max keeps the strongest evidence from any one
+ * window.
+ */
+export interface EventEmbedding {
+  /** Mean over the event's windows, one value per embedding dimension. */
+  readonly mean: readonly number[];
+  /** Element-wise maximum over the same windows. */
+  readonly max: readonly number[];
+  /** How many windows were pooled; 1 means mean and max are the same vector. */
+  readonly windows: number;
 }
 
 /** Root-mean-square level of the most recent analysis window. */

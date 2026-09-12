@@ -1,6 +1,6 @@
 import type { EventDetectorConfig, VocalEvent } from 'earshot';
 import type { DetectionThresholds, SegmentationOptions } from './config';
-import type { MelThumbnail, MeowEvent, VocalizationType } from './types';
+import type { EventEmbedding, MelThumbnail, MeowEvent, VocalizationType } from './types';
 
 /**
  * Translation between earshot's vocabulary and Meowlogue's.
@@ -158,13 +158,14 @@ export function toDetectorConfig(
  *   earshot times events from the start of capture, which says nothing about
  *   hour of day; the insights in spec 6.6 need the real clock.
  * @param melThumbnail Thumbnail stacked from the covering windows, or null.
- * @param embedding YAMNet embedding of the triggering window.
+ * @param embedding Pooled embedding of the covering windows, or null when
+ *   earshot is running classifier-only.
  */
 export function toMeowEvent(
   event: VocalEvent,
   captureStartedAtEpochMs: number,
   melThumbnail: MelThumbnail | null,
-  embedding: readonly number[],
+  embedding: EventEmbedding | null,
 ): MeowEvent {
   return {
     id: `${captureStartedAtEpochMs}-${event.start.toFixed(3)}`,

@@ -11,6 +11,7 @@ import {
 } from './config';
 import { stackLogMel } from './mel';
 import { passesClassPolicy, toDetectorConfig, toMeowEvent } from './vocalization';
+import { poolEmbedding } from './windows';
 import type {
   Capture,
   Engine,
@@ -43,7 +44,8 @@ import type {
  *    because insights are bucketed by hour of day (spec 6.6);
  * 3. keeps a short history of analysis windows so each event gets a log-mel
  *    thumbnail with a time axis — a window's own `logMel` is a single
- *    64-value average, which would render as one column.
+ *    64-value average, which would render as one column — and a mean and max
+ *    pooled embedding over the same windows (spec 6.3).
  */
 
 /** Options for {@link createListener}. */
@@ -192,11 +194,18 @@ export function createListener(options: ListenerOptions = {}): Listener {
               for (const window of windows) {
                 for (const event of detector.push(window, forDetector)) {
                   if (!passesClassPolicy(event, thresholds)) continue;
+                  // The window that triggered this event has reached the
+                  // detector, but `onWindow` may not have filed it yet. Both
+                  // summaries below would otherwise be computed without the
+                  // one window an event is guaranteed to overlap.
+                  const covered = windowHistory.includes(window)
+                    ? windowHistory
+                    : [...windowHistory, window];
                   const meowEvent: MeowEvent = toMeowEvent(
                     event,
                     captureStartedAtEpochMs,
-                    stackLogMel(windowHistory, event.start, event.end),
-                    window.embedding,
+                    stackLogMel(covered, event.start, event.end),
+                    poolEmbedding(covered, event.start, event.end),
                   );
                   emit('detection', meowEvent);
                 }

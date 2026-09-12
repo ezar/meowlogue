@@ -12,7 +12,7 @@ import {
   toMeowEvent,
   vocalizationTypeFor,
 } from '@/engine';
-import { makeMelThumbnail, makeVocalEvent } from './fixtures/events';
+import { makeEventEmbedding, makeMelThumbnail, makeVocalEvent } from './fixtures/events';
 
 /**
  * The translation layer is the part of the seam most likely to be wrong: it is
@@ -141,7 +141,7 @@ describe('toMeowEvent', () => {
   it('turns seconds since capture into a real wall clock', () => {
     // This is the conversion the insights in spec 6.6 depend on: an event at
     // 1.5 s into a capture that began at 07:00:00 happened at 07:00:01.500.
-    const event = toMeowEvent(makeVocalEvent(), captureStartedAt, null, []);
+    const event = toMeowEvent(makeVocalEvent(), captureStartedAt, null, null);
 
     expect(event.startedAt).toBe(captureStartedAt + 1500);
     expect(new Date(event.startedAt).toISOString()).toBe('2026-09-11T07:00:01.500Z');
@@ -149,29 +149,42 @@ describe('toMeowEvent', () => {
   });
 
   it('keeps the raw trigger label alongside the mapped type', () => {
-    const event = toMeowEvent(makeVocalEvent({ type: 'Cat' }), captureStartedAt, null, []);
+    const event = toMeowEvent(makeVocalEvent({ type: 'Cat' }), captureStartedAt, null, null);
 
     expect(event.type).toBe('meow');
     expect(event.triggerLabel).toBe('Cat');
   });
 
-  it('carries the thumbnail and embedding it is given', () => {
+  it('carries the thumbnail and pooled embedding it is given', () => {
     const thumbnail = makeMelThumbnail(64, 3);
-    const event = toMeowEvent(makeVocalEvent(), captureStartedAt, thumbnail, [0.5, 0.25]);
+    const embedding = makeEventEmbedding({ mean: [0.5, 0.25], max: [0.9, 0.3], windows: 2 });
+    const event = toMeowEvent(makeVocalEvent(), captureStartedAt, thumbnail, embedding);
 
     expect(event.melThumbnail).toBe(thumbnail);
-    expect(event.embedding).toEqual([0.5, 0.25]);
+    expect(event.embedding).toBe(embedding);
+  });
+
+  it('carries a null embedding rather than an empty vector', () => {
+    // Classifier-only is a real state, and spec 2 says a missing capability
+    // says what is missing instead of handing on something that looks valid.
+    const event = toMeowEvent(makeVocalEvent(), captureStartedAt, null, null);
+    expect(event.embedding).toBeNull();
   });
 
   it('preserves the possible-human flag rather than dropping the event', () => {
-    const event = toMeowEvent(makeVocalEvent({ possibleHuman: true }), captureStartedAt, null, []);
+    const event = toMeowEvent(
+      makeVocalEvent({ possibleHuman: true }),
+      captureStartedAt,
+      null,
+      null,
+    );
     expect(event.possibleHuman).toBe(true);
   });
 
   it('gives concurrent captures distinguishable ids', () => {
-    const a = toMeowEvent(makeVocalEvent({ start: 1.5 }), captureStartedAt, null, []);
-    const b = toMeowEvent(makeVocalEvent({ start: 1.5 }), captureStartedAt + 1, null, []);
-    const c = toMeowEvent(makeVocalEvent({ start: 2.5 }), captureStartedAt, null, []);
+    const a = toMeowEvent(makeVocalEvent({ start: 1.5 }), captureStartedAt, null, null);
+    const b = toMeowEvent(makeVocalEvent({ start: 1.5 }), captureStartedAt + 1, null, null);
+    const c = toMeowEvent(makeVocalEvent({ start: 2.5 }), captureStartedAt, null, null);
 
     expect(a.id).not.toBe(b.id);
     expect(a.id).not.toBe(c.id);

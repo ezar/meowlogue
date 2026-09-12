@@ -74,19 +74,29 @@ describe('toExportPayload', () => {
     const payload = toExportPayload(events, 'test-agent');
     const [event] = payload.events;
 
-    expect(payload.schema).toBe('meowlogue.debug-session/2');
+    expect(payload.schema).toBe('meowlogue.debug-session/3');
     expect(payload.userAgent).toBe('test-agent');
     expect(event?.embedding).toBeUndefined();
     expect(event?.melThumbnail).toBeUndefined();
     expect(event?.pitch.medianF0Hz).toBe(520);
   });
 
-  it('includes embeddings as plain arrays when asked', () => {
+  it('includes both poolings as plain arrays when asked', () => {
     const payload = toExportPayload(events, 'test-agent', { includeEmbeddings: true });
     const [event] = payload.events;
 
-    expect(event?.embedding).toHaveLength(1024);
-    expect(Array.isArray(event?.embedding)).toBe(true);
+    expect(event?.embedding?.mean).toHaveLength(1024);
+    expect(event?.embedding?.max).toHaveLength(1024);
+    expect(Array.isArray(event?.embedding?.mean)).toBe(true);
+    expect(event?.embedding?.windows).toBe(3);
+  });
+
+  it('omits the embedding of a classifier-only event even when asked', () => {
+    const payload = toExportPayload([makeMeowEvent({ embedding: null })], 'test-agent', {
+      includeEmbeddings: true,
+    });
+
+    expect(payload.events[0]?.embedding).toBeUndefined();
   });
 
   it('includes thumbnails as plain arrays when asked', () => {

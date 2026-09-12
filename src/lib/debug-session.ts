@@ -81,9 +81,9 @@ export function summarizeSession(events: readonly MeowEvent[]): SessionSummary {
 /** Options for {@link toExportPayload}. */
 export interface ExportOptions {
   /**
-   * Include the two 1024-dimensional embeddings per event. Off by default: a
-   * ten minute session runs to megabytes and the embeddings are only useful
-   * when re-running the classifiers offline.
+   * Include the event's two 1024-dimensional pooled embeddings, mean and max.
+   * Off by default: a ten minute session runs to megabytes and they are only
+   * useful when re-running the classifiers offline.
    */
   readonly includeEmbeddings?: boolean;
   /** Include the log-mel thumbnail magnitudes. Off by default, same reason. */
@@ -117,7 +117,11 @@ export interface ExportedEvent {
     readonly amplitudeModulationHz: number;
     readonly amplitudeModulationDepth: number;
   };
-  readonly embedding?: readonly number[];
+  readonly embedding?: {
+    readonly mean: readonly number[];
+    readonly max: readonly number[];
+    readonly windows: number;
+  };
   readonly melThumbnail?: {
     readonly bands: number;
     readonly frames: number;
@@ -127,7 +131,7 @@ export interface ExportedEvent {
 
 /** The document written by the debug page's "export session" action. */
 export interface ExportPayload {
-  readonly schema: 'meowlogue.debug-session/2';
+  readonly schema: 'meowlogue.debug-session/3';
   readonly exportedAt: string;
   readonly userAgent: string;
   readonly summary: SessionSummary;
@@ -137,8 +141,10 @@ export interface ExportPayload {
 /**
  * Converts a session into a JSON-serializable document for offline tuning.
  *
- * The schema is versioned and this is version 2: version 1 described the event
- * shape Meowlogue guessed before earshot shipped, and nothing ever wrote it.
+ * The schema is versioned and this is version 3. Version 1 described the event
+ * shape Meowlogue guessed before earshot shipped, and nothing ever wrote it;
+ * version 2 carried `embedding` as one flat array, the triggering window's,
+ * where spec 6.3 asks for mean and max pooled over the event.
  *
  * @param events Detections in the order they fired.
  * @param userAgent Reported so a capture can be traced back to a device.
@@ -152,7 +158,7 @@ export function toExportPayload(
   const { includeEmbeddings = false, includeThumbnails = false } = options;
 
   return {
-    schema: 'meowlogue.debug-session/2',
+    schema: 'meowlogue.debug-session/3',
     exportedAt: new Date().toISOString(),
     userAgent,
     summary: summarizeSession(events),
@@ -183,7 +189,7 @@ export function toExportPayload(
           amplitudeModulationHz: features.amplitudeModulationHz,
           amplitudeModulationDepth: features.amplitudeModulationDepth,
         },
-        ...(includeEmbeddings ? { embedding: event.embedding } : {}),
+        ...(includeEmbeddings && event.embedding !== null ? { embedding: event.embedding } : {}),
         ...(includeThumbnails && melThumbnail !== null
           ? {
               melThumbnail: {

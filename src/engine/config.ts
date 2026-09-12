@@ -29,7 +29,7 @@ export interface SegmentationOptions {
   /**
    * Silence needed to close a segment, in milliseconds (spec 6.2).
    *
-   * NOT currently applied. earshot v0.3.0 closes a segment by level
+   * NOT currently applied. earshot closes a segment by level
    * hysteresis — the envelope dropping below a `closeDb` threshold — with no
    * timed release. The value is kept because the spec states it, and because
    * the honest fix is to add a timed release to earshot with tests, tag a

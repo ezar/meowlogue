@@ -1,5 +1,6 @@
-import { MEL_BANDS, WINDOW_SECONDS } from 'earshot';
+import { MEL_BANDS } from 'earshot';
 import type { MelThumbnail, WindowResult } from './types';
+import { windowsCovering } from './windows';
 
 /**
  * Builds an event's log-mel thumbnail out of the windows that covered it.
@@ -21,12 +22,7 @@ export function stackLogMel(
   startSeconds: number,
   endSeconds: number,
 ): MelThumbnail | null {
-  const covering = windows.filter((window) => {
-    const windowEnd = window.t + WINDOW_SECONDS;
-    // Overlap, not containment: an event shorter than a window would match
-    // nothing under a containment test.
-    return windowEnd > startSeconds && window.t < endSeconds;
-  });
+  const covering = windowsCovering(windows, startSeconds, endSeconds);
   if (covering.length === 0) return null;
 
   const bands = covering[0]?.features.logMel.length ?? MEL_BANDS;

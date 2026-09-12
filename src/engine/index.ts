@@ -8,6 +8,7 @@ export * from './types';
 export * from './config';
 export { createListener, estimateNoiseFloorDbfs, type ListenerOptions } from './listener';
 export { stackLogMel } from './mel';
+export { poolEmbedding, windowsCovering } from './windows';
 export {
   TRIGGER_CLASSES,
   lowestTriggerScore,

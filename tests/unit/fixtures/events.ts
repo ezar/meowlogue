@@ -1,4 +1,5 @@
 import type {
+  EventEmbedding,
   MelThumbnail,
   MeowEvent,
   PitchTrack,
@@ -107,6 +108,16 @@ export function makeVocalEvent(overrides: Partial<VocalEvent> = {}): VocalEvent 
   };
 }
 
+/** A pooled event embedding, mean and max over `windows` windows. */
+export function makeEventEmbedding(overrides: Partial<EventEmbedding> = {}): EventEmbedding {
+  return {
+    mean: Array.from({ length: 1024 }, () => 0.01),
+    max: Array.from({ length: 1024 }, () => 0.08),
+    windows: 3,
+    ...overrides,
+  };
+}
+
 /** An event in Meowlogue's own terms: epoch milliseconds, mapped type. */
 export function makeMeowEvent(overrides: Partial<MeowEvent> = {}): MeowEvent {
   return {
@@ -126,7 +137,7 @@ export function makeMeowEvent(overrides: Partial<MeowEvent> = {}): MeowEvent {
     peakDbfs: -18.4,
     possibleHuman: false,
     melThumbnail: makeMelThumbnail(),
-    embedding: Array.from({ length: 1024 }, () => 0.01),
+    embedding: makeEventEmbedding(),
     ...overrides,
   };
 }

@@ -115,3 +115,94 @@ export async function readStoredCats(
     DATABASE,
   );
 }
+
+/**
+ * Writes a detection straight into the events store.
+ *
+ * The engine cannot be made to produce a real meow here — Chromium's fake
+ * device emits a tone, and YAMNet is right not to call it a cat — so the
+ * screens that read events are exercised against seeded rows. The raw
+ * IndexedDB API again, so the test does not depend on Dexie agreeing with
+ * itself.
+ */
+export async function seedEvent(
+  page: Page,
+  event: { readonly id: string; readonly type: string; readonly startedAt: number },
+): Promise<void> {
+  await page.evaluate(
+    async ([name, row]) =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open(name);
+        open.onerror = () => {
+          reject(new Error('could not open the database'));
+        };
+        open.onsuccess = () => {
+          const database = open.result;
+          const store = database.transaction('events', 'readwrite').objectStore('events');
+          const request = store.put(row);
+          request.onerror = () => {
+            reject(new Error('could not write the event'));
+          };
+          request.onsuccess = () => {
+            database.close();
+            resolve();
+          };
+        };
+      }),
+    [
+      DATABASE,
+      {
+        ...event,
+        durationMs: 640,
+        triggerLabel: 'Meow',
+        confidence: 0.72,
+        syllables: 2,
+        peakDbfs: -18.4,
+        possibleHuman: false,
+        medianF0Hz: 520,
+        contourSlopeSemitonesPerSecond: 4,
+        voicedFraction: 0.8,
+        spectralCentroidHz: 1400,
+      },
+    ] as const,
+  );
+}
+
+/** Reads the stored events back, newest first. */
+export async function readStoredEvents(
+  page: Page,
+): Promise<
+  readonly {
+    readonly id: string;
+    readonly catId?: string;
+    readonly labelId?: string;
+    readonly notACat?: boolean;
+  }[]
+> {
+  return page.evaluate(
+    async (name: string) =>
+      new Promise<readonly { id: string; catId?: string; labelId?: string; notACat?: boolean }[]>(
+        (resolve, reject) => {
+          const open = indexedDB.open(name);
+          open.onerror = () => {
+            reject(new Error('could not open the database'));
+          };
+          open.onsuccess = () => {
+            const database = open.result;
+            const request = database
+              .transaction('events', 'readonly')
+              .objectStore('events')
+              .getAll();
+            request.onerror = () => {
+              reject(new Error('could not read the events'));
+            };
+            request.onsuccess = () => {
+              resolve(request.result as { id: string; catId?: string }[]);
+              database.close();
+            };
+          };
+        },
+      ),
+    DATABASE,
+  );
+}

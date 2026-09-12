@@ -64,6 +64,42 @@ export const es = {
   'nav.help': 'Ayuda',
   'nav.back': 'Volver',
 
+  'nav.listen': 'Escuchar',
+  'nav.debug': 'Depuración',
+
+  'listen.title': 'Escuchar',
+  'listen.idle': 'En silencio. Pulsa para empezar a escuchar.',
+  'listen.loading': 'Cargando los modelos…',
+  'listen.listening': 'Escuchando',
+  'listen.start': 'Empezar a escuchar',
+  'listen.stop': 'Parar',
+  'listen.screenOpen':
+    'Deja esta pantalla abierta: el micrófono se para cuando el teléfono se bloquea.',
+  'listen.learning':
+    'Todavía estoy aprendiendo las voces. Confirma quién ha sido y, con {needed} ejemplos por gato, empezaré a proponerlo yo.',
+  'listen.learningOneCat':
+    'Con un solo gato no hay a quién distinguir, así que no pregunto quién ha sido.',
+  'listen.empty': 'Todavía no he oído nada.',
+  'listen.emptyHint': 'Buenos momentos: antes de comer, en la puerta, cuando llegas a casa.',
+  'listen.recent': 'Lo último',
+
+  'event.who': '¿Quién ha sido?',
+  'event.what': '¿De qué iba?',
+  'event.notACat': 'No era un gato',
+  'event.wasNotACat': 'Marcado como «no era un gato»',
+  'event.possibleHuman': 'Puede que fuera una persona imitando',
+  'event.unconfirmed': 'Sin confirmar',
+  'event.delete': 'Borrar',
+  'event.syllables': '{count} sílabas',
+  'event.syllablesOne': '1 sílaba',
+
+  'type.meow': 'maullido',
+  'type.purr': 'ronroneo',
+  'type.hiss': 'bufido',
+  'type.yowl': 'aullido',
+  'type.chirp': 'trino',
+  'type.growl': 'gruñido',
+
   'household.title': 'Tu casa',
   'household.subtitle':
     'Añade, quita o renombra gatos cuando cambie la casa. Los cambios se guardan al momento.',

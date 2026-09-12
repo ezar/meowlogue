@@ -4,6 +4,7 @@ import { I18nProvider } from '@/i18n/I18nProvider';
 import { Onboarding } from '@/onboarding/Onboarding';
 import { HouseholdScreen } from '@/household/HouseholdScreen';
 import { HelpScreen } from '@/help/HelpScreen';
+import { ListenScreen } from '@/listen/ListenScreen';
 import { useRoute } from '@/lib/route';
 import { DebugPage } from './debug/DebugPage';
 
@@ -35,8 +36,12 @@ function Shell() {
       return <HouseholdScreen />;
     case 'help':
       return <HelpScreen />;
-    case 'home':
+    case 'debug':
       return <DebugPage />;
+    case 'home':
+      // Listen is the main screen (spec 5.1). The debug page is still here at
+      // `#/debug` because it is what tunes the thresholds against a real room.
+      return <ListenScreen />;
   }
 }
 

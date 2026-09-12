@@ -18,6 +18,9 @@ import { completeOnboarding } from './helpers';
 // is the right way round.
 test.beforeEach(async ({ page }) => {
   await completeOnboarding(page);
+  // Listen is the app's home now (spec 5.1); the debug page has its own
+  // address so it stays available for tuning against a real room.
+  await page.goto('/#/debug');
 });
 
 test.describe('debug page', () => {
@@ -93,6 +96,7 @@ test.describe('debug page', () => {
 
   test('downloads the embedder once a second cat makes identity meaningful', async ({ page }) => {
     await completeOnboarding(page, ['Luna', 'Mia']);
+    await page.goto('/#/debug');
 
     const paths = new Set<string>();
     page.on('response', (response) => {

@@ -119,11 +119,12 @@ test.describe('onboarding', () => {
     await addCat(page, 'Luna');
     await page.getByRole('button', { name: 'Listo' }).click();
 
-    await expect(page.getByRole('heading', { name: 'Meowlogue debug' })).toBeVisible();
+    // Listen is where a finished household lands (spec 5.1).
+    await expect(page.getByRole('heading', { name: 'Escuchar' })).toBeVisible();
 
     // A household that exists is the signal, so onboarding must not return.
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'Meowlogue debug' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Escuchar' })).toBeVisible();
   });
 
   test('stores a downscaled copy of the photo, not the camera original', async ({ page }) => {
@@ -247,7 +248,7 @@ test.describe('help screen', () => {
     await expect(page.getByText(/Todo el análisis ocurre en este dispositivo/)).toBeVisible();
 
     await page.getByRole('button', { name: 'Volver' }).click();
-    await expect(page.getByRole('heading', { name: 'Meowlogue debug' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Escuchar' })).toBeVisible();
   });
 
   test('survives being opened straight from its own URL', async ({ page }) => {
@@ -258,7 +259,7 @@ test.describe('help screen', () => {
     // Back must stay inside the app even when there is no history to go back
     // to, which is what a bookmarked hash looks like on a cold start.
     await page.getByRole('button', { name: 'Volver' }).click();
-    await expect(page.getByRole('heading', { name: 'Meowlogue debug' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Escuchar' })).toBeVisible();
   });
 });
 

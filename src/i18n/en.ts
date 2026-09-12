@@ -66,6 +66,41 @@ export const en: Record<MessageKey, string> = {
   'nav.help': 'Help',
   'nav.back': 'Back',
 
+  'nav.listen': 'Listen',
+  'nav.debug': 'Debug',
+
+  'listen.title': 'Listen',
+  'listen.idle': 'Quiet. Tap to start listening.',
+  'listen.loading': 'Loading the models\u2026',
+  'listen.listening': 'Listening',
+  'listen.start': 'Start listening',
+  'listen.stop': 'Stop',
+  'listen.screenOpen': 'Keep this screen open: the microphone stops when the phone locks.',
+  'listen.learning':
+    'Still learning voices. Confirm who it was, and after {needed} examples per cat I will start guessing.',
+  'listen.learningOneCat':
+    'With a single cat there is nobody to tell apart, so I do not ask who it was.',
+  'listen.empty': 'Nothing heard yet.',
+  'listen.emptyHint': 'Best moments: before meals, at the door, when you come home.',
+  'listen.recent': 'Latest',
+
+  'event.who': 'Who was that?',
+  'event.what': 'What was it about?',
+  'event.notACat': 'Not a cat',
+  'event.wasNotACat': 'Marked \u201cnot a cat\u201d',
+  'event.possibleHuman': 'This may have been a person imitating',
+  'event.unconfirmed': 'Unconfirmed',
+  'event.delete': 'Delete',
+  'event.syllables': '{count} syllables',
+  'event.syllablesOne': '1 syllable',
+
+  'type.meow': 'meow',
+  'type.purr': 'purr',
+  'type.hiss': 'hiss',
+  'type.yowl': 'yowl',
+  'type.chirp': 'chirp',
+  'type.growl': 'growl',
+
   'household.title': 'Your household',
   'household.subtitle':
     'Add, remove or rename cats when the household changes. Changes are saved as you make them.',

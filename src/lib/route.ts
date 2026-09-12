@@ -12,9 +12,9 @@ import { useSyncExternalStore } from 'react';
  * When Listen, Timeline and Insights arrive with their own nested state, this
  * is small enough to throw away in favour of a real router.
  */
-export type Route = 'home' | 'household' | 'help';
+export type Route = 'home' | 'household' | 'help' | 'debug';
 
-const ROUTES: readonly Route[] = ['home', 'household', 'help'];
+const ROUTES: readonly Route[] = ['home', 'household', 'help', 'debug'];
 
 /**
  * Reads a route out of a location hash.

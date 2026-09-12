@@ -86,6 +86,7 @@ test.describe('installability', () => {
 test.describe('model caching', () => {
   test('keeps the downloaded models in a cache of their own', async ({ page }) => {
     await completeOnboarding(page, ['Luna', 'Mia']);
+    await page.goto('/#/debug');
     await page.evaluate(() => navigator.serviceWorker.ready);
 
     // Nothing is cached until something asks for a model, so this has to

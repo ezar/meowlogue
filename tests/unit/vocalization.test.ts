@@ -2,6 +2,8 @@ import { HOP_SECONDS, SAMPLE_RATE_HZ, WINDOW_SECONDS } from 'earshot';
 import { describe, expect, it } from 'vitest';
 import {
   CAPTURE,
+  MODEL_URLS,
+  modelUrlsFor,
   SEGMENTATION,
   THRESHOLDS,
   TRIGGER_CLASSES,
@@ -188,5 +190,23 @@ describe('toMeowEvent', () => {
 
     expect(a.id).not.toBe(b.id);
     expect(a.id).not.toBe(c.id);
+  });
+});
+
+describe('modelUrlsFor', () => {
+  it('includes the embedder when identity is wanted', () => {
+    const urls = modelUrlsFor({ embedder: true });
+    expect(urls.embedderUrl).toBe(MODEL_URLS.embedderUrl);
+    expect(urls.classifierUrl).toBe(MODEL_URLS.classifierUrl);
+    expect(urls.wasmBaseUrl).toBe(MODEL_URLS.wasmBaseUrl);
+  });
+
+  it('omits the embedder key entirely when it is not', () => {
+    // Absent, not present-and-undefined: earshot's worker branches on
+    // `embedderUrl === undefined` to skip loading the 13 MB model.
+    const urls = modelUrlsFor({ embedder: false });
+    expect('embedderUrl' in urls).toBe(false);
+    expect(urls.classifierUrl).toBe(MODEL_URLS.classifierUrl);
+    expect(urls.wasmBaseUrl).toBe(MODEL_URLS.wasmBaseUrl);
   });
 });

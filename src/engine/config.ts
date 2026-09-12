@@ -1,3 +1,5 @@
+import type { ModelUrls } from './types';
+
 /**
  * Meowlogue's detection policy.
  *
@@ -154,6 +156,31 @@ export const MODEL_URLS = {
   embedderUrl: `${MODEL_BASE_URL}yamnet-embedder.tflite`,
   wasmBaseUrl: `${MODEL_BASE_URL}wasm`,
 } as const;
+
+/**
+ * The model set to load for a session, with or without the embedder.
+ *
+ * The embedder is **13 MB**, three times the classifier, and about half of the
+ * per-window model cost. Spec 6.4 needs two cats before identity means
+ * anything — with one cat there is nobody to tell apart — so a one-cat
+ * household should not pay for it. earshot treats `embedderUrl` as optional
+ * and runs classifier-only when it is absent, reporting `hasEmbedder: false`.
+ *
+ * The decision itself is the app's: see `identityIsMeaningful` in
+ * `src/db/household.ts`. This function only assembles the URLs.
+ *
+ * @param options `embedder` false omits the embedder URL entirely.
+ */
+export function modelUrlsFor(options: { readonly embedder: boolean }): ModelUrls {
+  // A conditional spread rather than `embedderUrl: undefined`: under
+  // `exactOptionalPropertyTypes` an optional property must be absent, and
+  // earshot's worker branches on `=== undefined`.
+  return {
+    classifierUrl: MODEL_URLS.classifierUrl,
+    wasmBaseUrl: MODEL_URLS.wasmBaseUrl,
+    ...(options.embedder ? { embedderUrl: MODEL_URLS.embedderUrl } : {}),
+  };
+}
 
 /** Analysis windows retained for stacking an event's log-mel thumbnail. */
 export const THUMBNAIL_WINDOW_HISTORY = 24;

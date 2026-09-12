@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useI18n, type MessageKey } from '@/i18n';
 import { MAX_NAME_LENGTH, nextCatColorId, validateCatName, type NameProblem } from '@/db/household';
 import { catColorById } from '@/lib/cat-colors';
+import { downscalePhoto } from '@/lib/image';
 import type { Cat } from '@/db/schema';
 import { ColorPicker } from './components/ColorPicker';
 import { PrimaryButton } from './components/PrimaryButton';
@@ -43,6 +44,7 @@ export function AddCatsStep({ step, totalSteps, cats, onAdd, onRemove, onFinish 
   const [problem, setProblem] = useState<NameProblem | null>(null);
   const [photoError, setPhotoError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [photoPending, setPhotoPending] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   function clearPhoto(): void {
@@ -52,16 +54,24 @@ export function AddCatsStep({ step, totalSteps, cats, onAdd, onRemove, onFinish 
     if (fileInput.current !== null) fileInput.current.value = '';
   }
 
-  function handlePhoto(file: File | undefined): void {
+  async function handlePhoto(file: File | undefined): Promise<void> {
     setPhotoError(false);
     if (file === undefined) return;
     if (!file.type.startsWith('image/')) {
       setPhotoError(true);
       return;
     }
-    if (photoUrl !== null) URL.revokeObjectURL(photoUrl);
-    setPhoto(file);
-    setPhotoUrl(URL.createObjectURL(file));
+    // Downscale before anything else sees it, so the preview shows exactly
+    // what will be stored and no full-resolution copy is held in state.
+    setPhotoPending(true);
+    try {
+      const stored = await downscalePhoto(file);
+      if (photoUrl !== null) URL.revokeObjectURL(photoUrl);
+      setPhoto(stored);
+      setPhotoUrl(URL.createObjectURL(stored));
+    } finally {
+      setPhotoPending(false);
+    }
   }
 
   async function handleAdd(): Promise<void> {
@@ -161,7 +171,7 @@ export function AddCatsStep({ step, totalSteps, cats, onAdd, onRemove, onFinish 
               accept="image/*"
               className="sr-only"
               onChange={(event) => {
-                handlePhoto(event.target.files?.[0]);
+                void handlePhoto(event.target.files?.[0]);
               }}
             />
             <label
@@ -185,7 +195,9 @@ export function AddCatsStep({ step, totalSteps, cats, onAdd, onRemove, onFinish 
 
         <PrimaryButton
           className="w-full"
-          disabled={busy || name.trim().length === 0}
+          // Also disabled while a photo is being re-encoded: adding in that
+          // window would save the cat without the photo just picked.
+          disabled={busy || photoPending || name.trim().length === 0}
           onClick={() => void handleAdd()}
         >
           {t('onboarding.cats.add')}

@@ -19,6 +19,7 @@ export type {
   Engine,
   EventDetector,
   EventDetectorConfig,
+  ModelUrls,
   PitchFrame,
   PitchTrack,
   VocalEvent,

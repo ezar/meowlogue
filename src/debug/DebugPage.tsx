@@ -1,4 +1,7 @@
 import { useMemo, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { identityIsMeaningful } from '@/db/household';
+import { db } from '@/db/schema';
 import { useDebugStore } from './state/useDebugStore';
 import { EngineStatusBanner } from './components/EngineStatusBanner';
 import { EventRow } from './components/EventRow';
@@ -19,12 +22,19 @@ export function DebugPage() {
   const level = useDebugStore((state) => state.level);
   const events = useDebugStore((state) => state.events);
   const hasEmbedder = useDebugStore((state) => state.hasEmbedder);
+  const identityRequested = useDebugStore((state) => state.identityRequested);
   const start = useDebugStore((state) => state.start);
   const stop = useDebugStore((state) => state.stop);
   const clear = useDebugStore((state) => state.clear);
   const exportSession = useDebugStore((state) => state.exportSession);
 
   const [includeEmbeddings, setIncludeEmbeddings] = useState(false);
+
+  // One cat means there is nobody to tell apart, so the embedder stays
+  // undownloaded (spec 6.4). Counted rather than assumed: the household can
+  // gain a second cat between sessions.
+  const catCount = useLiveQuery(() => db.cats.count(), [], 0);
+  const identity = identityIsMeaningful(catCount);
 
   const summary = useMemo(() => summarizeSession(events), [events]);
   const listening = status.kind === 'listening' || status.kind === 'loading-models';
@@ -56,7 +66,7 @@ export function DebugPage() {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => void (listening ? stop() : start())}
+            onClick={() => void (listening ? stop() : start({ identity }))}
             disabled={busy}
             className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
@@ -92,10 +102,18 @@ export function DebugPage() {
 
         <LevelMeter level={level} active={status.kind === 'listening'} />
 
-        {status.kind === 'listening' && !hasEmbedder && (
+        {status.kind === 'listening' && !identityRequested && (
+          <p className="rounded-lg bg-stone-50 p-3 text-xs text-stone-700 ring-1 ring-stone-200">
+            Classifier-only by choice: {catCount === 1 ? 'one cat' : 'no cats'} in the household, so
+            there is nobody to tell apart and the 13 MB embedder was not downloaded (spec 6.4 needs
+            two). Add a second cat and start again to train identity.
+          </p>
+        )}
+
+        {status.kind === 'listening' && identityRequested && !hasEmbedder && (
           <p className="rounded-lg bg-amber-50 p-3 text-xs text-amber-900 ring-1 ring-amber-200">
-            Running classifier-only: the YAMNet embedder did not load, so there are no embeddings
-            and cat identity (spec 6.4) cannot be trained. MediaPipe dropped
+            The embedder was requested but did not load, so there are no embeddings and cat identity
+            (spec 6.4) cannot be trained. MediaPipe dropped
             <code className="mx-1 font-mono">AudioEmbedder</code> after 0.10.21 — check that version
             is the one installed.
           </p>

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { addCat, clearHousehold, reachCatsStep } from './helpers';
+import { addCat, clearHousehold, reachCatsStep, readStoredCats } from './helpers';
 
 /**
  * Onboarding, end to end (spec section 5.1).
@@ -118,6 +118,47 @@ test.describe('onboarding', () => {
     // A household that exists is the signal, so onboarding must not return.
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Meowlogue debug' })).toBeVisible();
+  });
+
+  test('stores a downscaled copy of the photo, not the camera original', async ({ page }) => {
+    await reachCatsStep(page);
+
+    // A phone-sized photo, made in the browser because nothing here ships a
+    // JPEG encoder. The noise matters: a flat colour compresses to almost
+    // nothing and the test would prove nothing about downscaling.
+    const dataUrl = await page.evaluate(() => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 2400;
+      canvas.height = 1800;
+      const context = canvas.getContext('2d');
+      if (context === null) throw new Error('no 2d context');
+      const image = context.createImageData(canvas.width, canvas.height);
+      for (let i = 0; i < image.data.length; i += 4) {
+        image.data[i] = (i * 7) % 255;
+        image.data[i + 1] = (i * 13) % 255;
+        image.data[i + 2] = (i * 29) % 255;
+        image.data[i + 3] = 255;
+      }
+      context.putImageData(image, 0, 0);
+      return canvas.toDataURL('image/jpeg', 0.95);
+    });
+    const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+    const buffer = Buffer.from(base64, 'base64');
+
+    await page.setInputFiles('#cat-photo', {
+      name: 'luna.jpg',
+      mimeType: 'image/jpeg',
+      buffer,
+    });
+    await expect(page.getByRole('button', { name: 'Quitar foto' })).toBeVisible();
+
+    await addCat(page, 'Luna');
+
+    const [stored] = await readStoredCats(page);
+    expect(stored?.photoType).toBe('image/jpeg');
+    expect(stored?.photoSize ?? 0).toBeGreaterThan(0);
+    // The stored copy is the 512 px avatar, not the original megabytes.
+    expect(stored?.photoSize ?? 0).toBeLessThan(buffer.byteLength / 4);
   });
 
   test('offers the eight accents as a keyboard-reachable radio group', async ({ page }) => {

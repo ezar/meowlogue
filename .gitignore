@@ -14,6 +14,9 @@ public/models/*
 !public/models/.gitkeep
 !public/models/README.md
 
+# Scratch scripts used to drive the app for screenshots.
+*.tmp.mjs
+
 # Playwright
 test-results/
 playwright-report/

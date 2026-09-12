@@ -28,7 +28,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Spread rather than `workers: undefined`: under `exactOptionalPropertyTypes`
+  // an optional property must be absent, not present and undefined. Off CI,
+  // Playwright's own default (half the cores) applies.
+  ...(process.env.CI ? { workers: 1 } : {}),
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL: BASE_URL,

@@ -169,9 +169,7 @@ export async function seedEvent(
 }
 
 /** Reads the stored events back, newest first. */
-export async function readStoredEvents(
-  page: Page,
-): Promise<
+export async function readStoredEvents(page: Page): Promise<
   readonly {
     readonly id: string;
     readonly catId?: string;

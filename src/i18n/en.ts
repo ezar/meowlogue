@@ -94,6 +94,23 @@ export const en: Record<MessageKey, string> = {
   'event.syllables': '{count} syllables',
   'event.syllablesOne': '1 syllable',
 
+  'identity.guess': 'I think that was {name} · {percent}%',
+  'identity.guessUnsure': 'Not sure. Possibly {name} · {percent}%',
+  'identity.helpful': 'Confirming this one teaches me the most.',
+  'identity.sectionTitle': 'The voices',
+  'identity.voicesList': 'Examples per cat',
+  'identity.progress': '{count} of {needed} examples',
+  'identity.progressDone': '{count} examples',
+  'identity.selfTest': 'Voice recognition: {percent}% on your own examples.',
+  'identity.selfTestPending': 'No self-test yet: not enough confirmed examples.',
+  'identity.needAccuracy':
+    'On your examples I get {percent}% right, and I will not say names below {needed}%. Keep confirming who called.',
+  'identity.active': 'I can tell the voices apart: {percent}% right on your own examples.',
+  'identity.needExamples': 'Examples still missing: {detail}.',
+  'identity.needExamplesOne': '{count} from {name}',
+  'identity.noEmbedder':
+    'This session is listening without the voice model, so it cannot learn to tell anyone apart.',
+
   'type.meow': 'meow',
   'type.purr': 'purr',
   'type.hiss': 'hiss',
@@ -104,6 +121,7 @@ export const en: Record<MessageKey, string> = {
   'household.title': 'Your household',
   'household.subtitle':
     'Add, remove or rename cats when the household changes. Changes are saved as you make them.',
+  'household.catsList': 'Your cats',
   'household.addTitle': 'Add another cat',
   'household.edit': 'Edit',
   'household.save': 'Save',

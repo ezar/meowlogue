@@ -93,6 +93,23 @@ export const es = {
   'event.syllables': '{count} sílabas',
   'event.syllablesOne': '1 sílaba',
 
+  'identity.guess': 'Creo que ha sido {name} · {percent}%',
+  'identity.guessUnsure': 'No estoy seguro. Puede que {name} · {percent}%',
+  'identity.helpful': 'Si me lo confirmas, es de lo que más aprendo.',
+  'identity.sectionTitle': 'Las voces',
+  'identity.voicesList': 'Ejemplos por gato',
+  'identity.progress': '{count} de {needed} ejemplos',
+  'identity.progressDone': '{count} ejemplos',
+  'identity.selfTest': 'Reconocimiento de voz: {percent}% con tus propios ejemplos.',
+  'identity.selfTestPending': 'Todavía no he hecho la prueba: me faltan ejemplos confirmados.',
+  'identity.needAccuracy':
+    'Con tus ejemplos acierto el {percent}%, y no digo nombres por debajo del {needed}%. Sigue confirmando quién ha sido.',
+  'identity.active': 'Ya distingo las voces: acierto el {percent}% con tus propios ejemplos.',
+  'identity.needExamples': 'Me faltan ejemplos: {detail}.',
+  'identity.needExamplesOne': '{count} de {name}',
+  'identity.noEmbedder':
+    'Esta sesión escucha sin el modelo de voces, así que no puedo aprender a distinguir a nadie.',
+
   'type.meow': 'maullido',
   'type.purr': 'ronroneo',
   'type.hiss': 'bufido',
@@ -103,6 +120,7 @@ export const es = {
   'household.title': 'Tu casa',
   'household.subtitle':
     'Añade, quita o renombra gatos cuando cambie la casa. Los cambios se guardan al momento.',
+  'household.catsList': 'Tus gatos',
   'household.addTitle': 'Añadir otro gato',
   'household.edit': 'Editar',
   'household.save': 'Guardar',

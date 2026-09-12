@@ -141,9 +141,6 @@ export const SETTING_KEYS = {
   onboardingCompletedAt: 'onboardingCompletedAt',
 } as const;
 
-/** Minimum confirmed events per cat before identity is shown (spec 6.4). */
-export const IDENTITY_MIN_EXAMPLES = 10;
-
 /** The Dexie database. */
 export class MeowlogueDatabase extends Dexie {
   cats!: EntityTable<Cat, 'id'>;

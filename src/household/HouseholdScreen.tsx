@@ -19,6 +19,7 @@ import { ColorPicker } from '@/components/ColorPicker';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { SecondaryButton } from '@/components/SecondaryButton';
 import { ScreenShell } from '@/components/ScreenShell';
+import { VoicesSection } from '@/identity/VoicesSection';
 
 /** Maps a validation problem onto the message the user reads. */
 const PROBLEM_MESSAGE: Record<NameProblem, MessageKey> = {
@@ -58,7 +59,9 @@ export function HouseholdScreen() {
         {cats.length === 0 ? (
           <p className="mt-2 text-sm text-stone-500">{t('onboarding.cats.empty')}</p>
         ) : (
-          <ul className="mt-2 space-y-2">
+          // Named because the voices section below is a second list of the
+          // same cats, and "the list of cats" has to mean one of them.
+          <ul className="mt-2 space-y-2" aria-label={t('household.catsList')}>
             {cats.map((cat) => (
               <CatRow key={cat.id} cat={cat} others={cats.filter((one) => one.id !== cat.id)} />
             ))}
@@ -70,6 +73,8 @@ export function HouseholdScreen() {
             : t('household.identityOff')}
         </p>
       </section>
+
+      {identity && <VoicesSection cats={cats} />}
 
       <section className="mt-6">
         <h2 className="mb-2 text-sm font-semibold text-stone-800">{t('household.addTitle')}</h2>

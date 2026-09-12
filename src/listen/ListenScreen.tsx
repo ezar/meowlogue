@@ -1,10 +1,14 @@
+import { useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { identityIsMeaningful } from '@/db/household';
-import { db, IDENTITY_MIN_EXAMPLES } from '@/db/schema';
+import { db } from '@/db/schema';
 import { useI18n } from '@/i18n';
 import { navigate } from '@/lib/route';
 import { formatDbfs } from '@/lib/format';
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { IdentityStatus } from '@/identity/IdentityStatus';
+import { useIdentityStore } from '@/identity/state/useIdentityStore';
+import { useIdentityTraining } from '@/identity/useIdentityTraining';
 import { useListenStore } from './state/useListenStore';
 import { EventCard } from './components/EventCard';
 
@@ -14,12 +18,14 @@ const RECENT_LIMIT = 30;
 /**
  * The main screen (spec section 5.1).
  *
- * It listens, writes what it hears, and asks who it was. What it does **not**
- * do is guess: spec 6.4 holds identity back until each cat has
- * {@link IDENTITY_MIN_EXAMPLES} confirmed examples and the self-test reaches
- * 80%, and no classifier has been trained yet. Saying "probably Luna" now
- * would be the exact dishonesty spec section 2 rules out, so the screen says
- * it is still learning and collects confirmations instead.
+ * It listens, writes what it hears, asks who it was — and, once it has earned
+ * the right to, says who it thinks it was.
+ *
+ * Earning it is the whole point. Spec 6.4 holds identity back until each cat
+ * has ten confirmed examples and the self-test reaches 80% (`IDENTITY_GATE`); until then the screen says what is still missing and collects
+ * confirmations. Saying "probably Luna" before that is the exact dishonesty
+ * spec section 2 rules out, so the gate is enforced here by passing no guess
+ * at all rather than by a card choosing not to render one.
  */
 export function ListenScreen() {
   const { t } = useI18n();
@@ -35,6 +41,18 @@ export function ListenScreen() {
     [],
     [],
   );
+
+  const summary = useIdentityStore((state) => state.summary);
+  const guesses = useIdentityStore((state) => state.guesses);
+  const requestGuesses = useIdentityStore((state) => state.requestGuesses);
+  useIdentityTraining();
+
+  const identityActive = summary?.readiness.kind === 'active';
+  useEffect(() => {
+    // Only once the gate is open: a guess computed now and shown later is
+    // still a guess the app was not allowed to make.
+    if (identityActive) requestGuesses(events);
+  }, [identityActive, events, requestGuesses]);
 
   const askWho = identityIsMeaningful(cats.length);
   const listening = status.kind === 'listening';
@@ -89,11 +107,9 @@ export function ListenScreen() {
         )}
       </section>
 
-      <p className="mt-5 rounded-xl bg-stone-100 p-3 text-sm leading-relaxed text-stone-700">
-        {askWho
-          ? t('listen.learning', { needed: IDENTITY_MIN_EXAMPLES })
-          : t('listen.learningOneCat')}
-      </p>
+      <div className="mt-5">
+        <IdentityStatus cats={cats} />
+      </div>
 
       <section className="mt-5 flex-1">
         <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
@@ -117,6 +133,7 @@ export function ListenScreen() {
                   (label) => label.catId === (askWho ? event.catId : cats[0]?.id),
                 )}
                 askWho={askWho}
+                guess={identityActive ? (guesses[event.id] ?? null) : null}
               />
             ))}
           </ul>

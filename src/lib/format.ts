@@ -99,3 +99,16 @@ export function clamp(value: number, min: number, max: number): number {
   if (Number.isNaN(value)) return min;
   return Math.min(max, Math.max(min, value));
 }
+
+/**
+ * A 0..1 fraction as whole percent.
+ *
+ * Rounded, not truncated, and never given a decimal: an accuracy of 86.4% on
+ * fourteen examples is a number pretending to a precision it does not have.
+ *
+ * @param fraction A value in 0..1.
+ * @returns The same value in 0..100, rounded to an integer.
+ */
+export function percent(fraction: number): number {
+  return Math.round(fraction * 100);
+}

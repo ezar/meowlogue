@@ -161,6 +161,23 @@ export const CONFIDENCE = {
   autoConfirmAfterHours: 24,
 } as const;
 
+/**
+ * How an identity feature vector is put together (spec 6.4).
+ *
+ * The split is spec 6.4's starting point — "0.7 embedding, 0.3 pitch and
+ * duration, and tune on the evaluation set" — and it lives here because it is
+ * a decision about what makes a cat recognisable, not about how kNN works.
+ * `embedding + descriptors` is 1 by construction; see `identityVector`.
+ */
+export const IDENTITY_FEATURES = {
+  /** Share of the vector's length given to the two pooled embeddings. */
+  embedding: 0.7,
+  /** Share given to the standardized pitch and duration descriptors. */
+  descriptors: 0.3,
+  /** Neighbours per prediction: spec 6.4's k. */
+  neighbours: 5,
+} as const;
+
 /** Enrollment gate before identity guesses are shown at all (spec 6.4). */
 export const IDENTITY_GATE = {
   /** Confirmed vocalizations required per cat. */

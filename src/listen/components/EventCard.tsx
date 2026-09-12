@@ -1,4 +1,6 @@
 import { useI18n, type MessageKey } from '@/i18n';
+import type { IdentityGuess } from '@/engine';
+import { percent } from '@/lib/format';
 import { catColorById } from '@/lib/cat-colors';
 import { formatDuration } from '@/lib/format';
 import { confirmCat, confirmLabel, deleteEvent, markNotACat } from '@/db/events';
@@ -11,6 +13,11 @@ interface Props {
   readonly labels: readonly Label[];
   /** False when the household has one cat and identity is pointless. */
   readonly askWho: boolean;
+  /**
+   * What identity thinks, or null when it has nothing to say — no model yet,
+   * no embedding on this event, or the gate of spec 6.4 still closed.
+   */
+  readonly guess: IdentityGuess | null;
 }
 
 /** A label's display text: an i18n key for the defaults, verbatim if renamed. */
@@ -27,17 +34,27 @@ function clock(startedAt: number, locale: string): string {
  * One detected vocalization, and the chips that teach the app about it
  * (spec 5.1).
  *
- * There is no identity or context guess on this card yet, and that is not an
- * omission: spec 6.4 forbids showing a guess before each cat has ten confirmed
- * examples and the self-test reaches 80%, and nothing has been trained. So the
- * card asks instead of guessing. Every answer is a training example.
+ * The guess, when there is one, is never shown as a fact. Above the "not
+ * sure" threshold it reads "I think that was Luna" with the number beside it;
+ * below it, the card says outright that it is not sure. Inside the
+ * active-learning band of spec 6.4 it highlights itself and says why, because
+ * those are the answers that teach the classifier the most.
+ *
+ * Whether a guess arrives at all is not this component's decision: the gate
+ * lives in `identityReadiness`, and the screen passes null until it opens.
+ * Every answer, guessed or not, is still a training example.
  */
-export function EventCard({ event, cats, labels, askWho }: Props) {
+export function EventCard({ event, cats, labels, askWho, guess }: Props) {
   const { t, locale } = useI18n();
   const confirmedCat = cats.find((cat) => cat.id === event.catId);
+  const guessedCat = guess === null ? undefined : cats.find((cat) => cat.id === guess.catId);
 
   return (
-    <li className="rounded-xl bg-white p-3 ring-1 ring-stone-200">
+    <li
+      className={`rounded-xl bg-white p-3 ring-1 ${
+        guess?.askAgain === true ? 'ring-2 ring-amber-400' : 'ring-stone-200'
+      }`}
+    >
       <div className="flex items-baseline gap-2">
         <span className="text-base font-medium text-stone-900">
           {t(`type.${event.type}` as MessageKey)}
@@ -65,6 +82,18 @@ export function EventCard({ event, cats, labels, askWho }: Props) {
         <p className="mt-1 text-xs text-amber-800">{t('event.possibleHuman')}</p>
       )}
 
+      {guessedCat !== undefined && guess !== null && event.catId === undefined && (
+        <div className="mt-1">
+          <p className={`text-sm ${guess.notSure ? 'text-stone-600' : 'text-stone-900'}`}>
+            {t(guess.notSure ? 'identity.guessUnsure' : 'identity.guess', {
+              name: guessedCat.name,
+              percent: percent(guess.confidence),
+            })}
+          </p>
+          {guess.askAgain && <p className="text-xs text-amber-800">{t('identity.helpful')}</p>}
+        </div>
+      )}
+
       {event.notACat !== true && (
         <>
           {askWho && (
@@ -82,7 +111,12 @@ export function EventCard({ event, cats, labels, askWho }: Props) {
                       className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm ring-1 ${
                         chosen
                           ? 'bg-stone-900 text-white ring-stone-900'
-                          : 'bg-stone-50 text-stone-800 ring-stone-300'
+                          : cat.id === guess?.catId
+                            ? // The guess is a suggestion, not a selection:
+                              // outlined, never pre-pressed, so a tap is
+                              // always the person's own answer.
+                              'bg-stone-50 text-stone-900 ring-stone-500'
+                            : 'bg-stone-50 text-stone-800 ring-stone-300'
                       }`}
                     >
                       <span

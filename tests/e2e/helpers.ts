@@ -62,9 +62,56 @@ export async function addCat(page: Page, name: string): Promise<void> {
  * The cost is a few seconds per test, which is worth paying to keep the setup
  * honest about what a real first run does.
  */
-export async function completeOnboarding(page: Page, catName = 'Luna'): Promise<void> {
+export async function completeOnboarding(
+  page: Page,
+  catNames: readonly string[] = ['Luna'],
+): Promise<void> {
   await clearHousehold(page);
   await reachCatsStep(page);
-  await addCat(page, catName);
+  for (const name of catNames) await addCat(page, name);
   await page.getByRole('button', { name: 'Listo' }).click();
+}
+
+/**
+ * Reads the stored cats straight out of IndexedDB.
+ *
+ * Deliberately the raw API rather than Dexie: this is a test asserting what
+ * actually landed on disk, so it should not go through the same library the
+ * app used to put it there.
+ */
+export async function readStoredCats(
+  page: Page,
+): Promise<
+  readonly { readonly name: string; readonly photoSize: number; readonly photoType: string }[]
+> {
+  return page.evaluate(
+    async (name: string) =>
+      new Promise<readonly { name: string; photoSize: number; photoType: string }[]>(
+        (resolve, reject) => {
+          const open = indexedDB.open(name);
+          open.onerror = () => {
+            reject(new Error('could not open the database'));
+          };
+          open.onsuccess = () => {
+            const database = open.result;
+            const request = database.transaction('cats', 'readonly').objectStore('cats').getAll();
+            request.onerror = () => {
+              reject(new Error('could not read the cats'));
+            };
+            request.onsuccess = () => {
+              const rows = request.result as { name: string; photo?: Blob }[];
+              resolve(
+                rows.map((row) => ({
+                  name: row.name,
+                  photoSize: row.photo?.size ?? 0,
+                  photoType: row.photo?.type ?? '',
+                })),
+              );
+              database.close();
+            };
+          };
+        },
+      ),
+    DATABASE,
+  );
 }

@@ -19,12 +19,26 @@ export type {
   Engine,
   EventDetector,
   EventDetectorConfig,
+  GuardConfig,
+  ModelUrls,
   PitchFrame,
   PitchTrack,
   VocalEvent,
   WindowFeatures,
+  WindowGuard,
+  WindowGuardReason,
   WindowResult,
 } from 'earshot';
+
+/**
+ * earshot's own interference list, re-exported so Meowlogue can be tested
+ * against it rather than against a copy.
+ *
+ * It is SteadyHum's list, and it contains `Cat`: for a machine-listening app a
+ * cat is something contaminating the recording. Here the cat is the recording.
+ * See `GUARDS` in `config.ts`.
+ */
+export { INTERFERENCE_CLASSES as EARSHOT_INTERFERENCE_CLASSES } from 'earshot';
 
 /**
  * A vocalization class Meowlogue reports to the user (spec 5.1).

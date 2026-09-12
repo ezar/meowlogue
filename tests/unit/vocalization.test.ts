@@ -2,6 +2,10 @@ import { HOP_SECONDS, SAMPLE_RATE_HZ, WINDOW_SECONDS } from 'earshot';
 import { describe, expect, it } from 'vitest';
 import {
   CAPTURE,
+  EARSHOT_INTERFERENCE_CLASSES,
+  GUARDS,
+  MODEL_URLS,
+  modelUrlsFor,
   SEGMENTATION,
   THRESHOLDS,
   TRIGGER_CLASSES,
@@ -188,5 +192,45 @@ describe('toMeowEvent', () => {
 
     expect(a.id).not.toBe(b.id);
     expect(a.id).not.toBe(c.id);
+  });
+});
+
+describe('modelUrlsFor', () => {
+  it('includes the embedder when identity is wanted', () => {
+    const urls = modelUrlsFor({ embedder: true });
+    expect(urls.embedderUrl).toBe(MODEL_URLS.embedderUrl);
+    expect(urls.classifierUrl).toBe(MODEL_URLS.classifierUrl);
+    expect(urls.wasmBaseUrl).toBe(MODEL_URLS.wasmBaseUrl);
+  });
+
+  it('omits the embedder key entirely when it is not', () => {
+    // Absent, not present-and-undefined: earshot's worker branches on
+    // `embedderUrl === undefined` to skip loading the 13 MB model.
+    const urls = modelUrlsFor({ embedder: false });
+    expect('embedderUrl' in urls).toBe(false);
+    expect(urls.classifierUrl).toBe(MODEL_URLS.classifierUrl);
+    expect(urls.wasmBaseUrl).toBe(MODEL_URLS.wasmBaseUrl);
+  });
+});
+
+describe('GUARDS', () => {
+  it('does not treat a cat as interference, whatever earshot defaults to', () => {
+    // earshot's list is SteadyHum's: there a cat is something polluting the
+    // recording. Passing those defaults here would reject exactly the windows
+    // identity needs, and every meow would lose its embedding with no error.
+    expect(EARSHOT_INTERFERENCE_CLASSES).toContain('Cat');
+    expect(GUARDS.interferenceClasses).toEqual([]);
+  });
+
+  it('keeps a floor low enough for a purr at distance', () => {
+    // Spec 6.2 treats purrs as quiet, which is why their class threshold is
+    // the lowest of the five. A floor at earshot's -65 dBFS default could call
+    // a distant purr silence and skip its embedding.
+    expect(GUARDS.silenceFloorDbfs).toBeLessThan(-65);
+  });
+
+  it('still rejects a clipped window', () => {
+    // An embedding of a clipped window describes the clipping.
+    expect(GUARDS.maxLevelDbfs).toBe(-3);
   });
 });

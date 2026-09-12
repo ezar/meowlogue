@@ -65,7 +65,7 @@ test.describe('debug page', () => {
     expect(failures, `browser reported: ${failures.join(' | ')}`).toEqual([]);
   });
 
-  test('fetches both models and the WASM runtime from its own origin', async ({ page }) => {
+  test('skips the 13 MB embedder for a one-cat household', async ({ page }) => {
     const assets = new Map<string, number>();
     page.on('response', (response) => {
       const url = new URL(response.url());
@@ -81,9 +81,29 @@ test.describe('debug page', () => {
     // Spec section 11: no network calls beyond the app's own model downloads.
     expect(paths.some((path) => path.endsWith('yamnet-classifier.tflite'))).toBe(true);
     expect(paths.some((path) => path.endsWith('.wasm'))).toBe(true);
+    // The household `beforeEach` builds has one cat, so spec 6.4 has nobody to
+    // tell apart and the embedder should never be requested.
+    expect(paths.some((path) => path.endsWith('yamnet-embedder.tflite'))).toBe(false);
+    await expect(page.getByText(/Classifier-only by choice/)).toBeVisible();
+
     for (const [path, status] of assets) {
       expect(status, `${path} returned ${status}`).toBeLessThan(400);
     }
+  });
+
+  test('downloads the embedder once a second cat makes identity meaningful', async ({ page }) => {
+    await completeOnboarding(page, ['Luna', 'Mia']);
+
+    const paths = new Set<string>();
+    page.on('response', (response) => {
+      paths.add(new URL(response.url()).pathname);
+    });
+
+    await page.getByRole('button', { name: 'Start listening' }).click();
+    await expect(page.getByRole('status')).toContainText('Listening', { timeout: 90_000 });
+
+    expect([...paths].some((path) => path.endsWith('yamnet-embedder.tflite'))).toBe(true);
+    await expect(page.getByText(/Classifier-only by choice/)).toBeHidden();
   });
 
   test('stops cleanly and returns to idle', async ({ page }) => {

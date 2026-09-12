@@ -1,5 +1,5 @@
 import { useI18n } from '@/i18n';
-import { PrimaryButton } from './components/PrimaryButton';
+import { PrimaryButton } from '@/components/PrimaryButton';
 import { StepShell } from './components/StepShell';
 
 interface Props {

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import {
   createListener,
+  modelUrlsFor,
   type EngineStatus,
   type Listener,
   type LevelUpdate,
@@ -20,7 +21,15 @@ interface DebugState {
   readonly events: readonly MeowEvent[];
   /** True once the YAMNet embedder loaded; identity needs it (spec 6.4). */
   readonly hasEmbedder: boolean;
-  readonly start: () => Promise<void>;
+  /**
+   * Whether this session asked for the embedder at all.
+   *
+   * Without it, `hasEmbedder: false` is ambiguous — it reads the same whether
+   * the 13 MB model failed to load or was deliberately left out because the
+   * household has one cat. The UI has to say which.
+   */
+  readonly identityRequested: boolean;
+  readonly start: (options?: { readonly identity?: boolean }) => Promise<void>;
   readonly stop: () => Promise<void>;
   readonly clear: () => void;
   readonly exportSession: (options?: ExportOptions) => string;
@@ -40,11 +49,14 @@ export const useDebugStore = create<DebugState>((set, get) => ({
   level: IDLE_LEVEL,
   events: [],
   hasEmbedder: false,
+  identityRequested: false,
 
-  start: async () => {
+  start: async (options) => {
     if (get().status.kind !== 'idle' && get().status.kind !== 'error') return;
 
-    const session = createListener();
+    const identity = options?.identity ?? true;
+    set({ identityRequested: identity });
+    const session = createListener({ models: modelUrlsFor({ embedder: identity }) });
     listener = session;
     subscriptions = [
       session.on('status', (status) => {

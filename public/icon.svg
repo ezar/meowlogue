@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Meowlogue">
+  <title>Meowlogue</title>
+  <!--
+    The app mark: a cat's head, and the sound leaving it.
+
+    Drawn rather than borrowed so nothing here is someone else's artwork. The
+    colours are the app's own: the warm neutral base from `cat-colors.ts` and
+    honey, which is the first accent a household is given.
+
+    The head is a circle of radius 92 at (230, 268), cut where the ears meet it
+    so no stroke crosses another — the first attempt drew a full circle under
+    the ears and the joins read as smudges. Every endpoint below is a point on
+    that circle: 160 degrees and 110 degrees for the left ear, 70 and 20 for
+    the right.
+
+    One file serves every size. The PNGs the manifest needs are rasterised from
+    it by `pnpm icons:build`, and the maskable variants keep the mark inside
+    the 80% safe zone so a circular Android mask cannot clip an ear.
+  -->
+  <rect width="512" height="512" fill="#faf7f2" />
+  <g
+    fill="none"
+    stroke="#96600b"
+    stroke-width="28"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <!-- Left ear, then the top of the head, then the right ear. -->
+    <path d="M144 236 L152 112 L198 182" />
+    <path d="M198 182 A92 92 0 0 1 262 182" />
+    <path d="M262 182 L308 112 L316 236" />
+    <!-- The jaw: the major arc, from the right of the head round the bottom. -->
+    <path d="M316 236 A92 92 0 1 1 144 236" />
+    <!-- The call: two arcs widening away from the muzzle, clear of the head. -->
+    <path d="M368 224 A56 56 0 0 1 368 312" />
+    <path d="M410 196 A92 92 0 0 1 410 340" />
+    <!-- Eyes, closed and content: strokes rather than dots. -->
+    <path d="M186 252 H216" />
+    <path d="M246 252 H276" />
+  </g>
+</svg>

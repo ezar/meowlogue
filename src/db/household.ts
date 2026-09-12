@@ -120,6 +120,55 @@ export async function removeCat(catId: string): Promise<void> {
   });
 }
 
+/**
+ * Renames a cat, refusing what {@link validateCatName} refuses.
+ *
+ * The cat's own current name is excluded from the duplicate check: saving a
+ * cat under the name it already has is a no-op, not a collision, and treating
+ * it as one makes fixing the capitalisation of "luna" impossible.
+ *
+ * @returns The problem that blocked the rename, or null when it was written.
+ */
+export async function renameCat(catId: string, name: string): Promise<NameProblem | null> {
+  const others = (await listCats()).filter((cat) => cat.id !== catId);
+  const problem = validateCatName(
+    name,
+    others.map((cat) => cat.name),
+  );
+  if (problem !== null) return problem;
+  await db.cats.update(catId, { name: name.trim() });
+  return null;
+}
+
+/**
+ * Changes a cat's accent colour.
+ *
+ * Two cats may end up sharing one: the picker discourages it and names the
+ * clash, but the household is the user's and colour is never the only signal
+ * (spec section 10 requires the name in text beside it).
+ *
+ * @param color A colour id from `CAT_COLORS`.
+ */
+export async function setCatColor(catId: string, color: string): Promise<void> {
+  await db.cats.update(catId, { color });
+}
+
+/**
+ * Empties the household and forgets that onboarding was finished.
+ *
+ * The destructive counterpart to finishing onboarding: the app returns to the
+ * welcome screen with nothing remembered. Kept a single transaction so a
+ * half-erased household — cats gone, labels orphaned — cannot survive an
+ * interruption.
+ */
+export async function resetHousehold(): Promise<void> {
+  await db.transaction('rw', db.cats, db.labels, db.settings, async () => {
+    await db.cats.clear();
+    await db.labels.clear();
+    await db.settings.delete(SETTING_KEYS.onboardingCompletedAt);
+  });
+}
+
 /** Every cat, oldest first. */
 export async function listCats(): Promise<Cat[]> {
   return db.cats.orderBy('createdAt').toArray();

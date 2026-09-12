@@ -1,6 +1,6 @@
 import { useI18n, type MessageKey } from '@/i18n';
-import { PrimaryButton } from './components/PrimaryButton';
-import { SecondaryButton } from './components/SecondaryButton';
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { SecondaryButton } from '@/components/SecondaryButton';
 import { StepShell } from './components/StepShell';
 
 interface Props {

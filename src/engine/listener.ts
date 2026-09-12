@@ -2,6 +2,7 @@ import { createCapture, createEventDetector, createEngine } from 'earshot';
 import workletUrl from 'earshot/capture-worklet?url';
 import workerUrl from 'earshot/worker?worker&url';
 import {
+  GUARDS,
   MODEL_URLS,
   SEGMENTATION,
   THRESHOLDS,
@@ -21,6 +22,7 @@ import type {
   ListenerListener,
   Listener,
   MeowEvent,
+  ModelUrls,
   Unsubscribe,
   WindowResult,
 } from './types';
@@ -52,6 +54,13 @@ import type {
 export interface ListenerOptions {
   readonly thresholds?: DetectionThresholds;
   readonly segmentation?: SegmentationOptions;
+  /**
+   * Which models to load. Defaults to the full set, embedder included.
+   *
+   * Build it with `modelUrlsFor`: a household where identity cannot mean
+   * anything yet should not download the 13 MB embedder (spec 6.4).
+   */
+  readonly models?: ModelUrls;
 }
 
 /** How many windows of level history the noise-floor estimate looks at. */
@@ -114,6 +123,7 @@ export function estimateNoiseFloorDbfs(levelsDbfs: readonly number[]): number {
 export function createListener(options: ListenerOptions = {}): Listener {
   const thresholds = options.thresholds ?? THRESHOLDS;
   const segmentation = options.segmentation ?? SEGMENTATION;
+  const models = options.models ?? MODEL_URLS;
 
   const listeners: { [K in keyof ListenerEventMap]: Set<ListenerListener<K>> } = {
     status: new Set(),
@@ -173,7 +183,10 @@ export function createListener(options: ListenerOptions = {}): Listener {
       setStatus({ kind: 'loading-models' });
 
       try {
-        const startedEngine = await createEngine({ workerUrl, models: MODEL_URLS });
+        // `guards` lets earshot skip the embedder for windows it rejects,
+        // which is most of the per-window cost in a quiet house. The policy
+        // is Meowlogue's, not earshot's defaults: see `GUARDS`.
+        const startedEngine = await createEngine({ workerUrl, models, guards: GUARDS });
         engine = startedEngine;
         hasEmbedder = startedEngine.hasEmbedder;
 

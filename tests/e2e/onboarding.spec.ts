@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { addCat, clearHousehold, reachCatsStep } from './helpers';
+import {
+  addCat,
+  clearHousehold,
+  completeOnboarding,
+  reachCatsStep,
+  readStoredCats,
+} from './helpers';
 
 /**
  * Onboarding, end to end (spec section 5.1).
@@ -120,6 +126,47 @@ test.describe('onboarding', () => {
     await expect(page.getByRole('heading', { name: 'Meowlogue debug' })).toBeVisible();
   });
 
+  test('stores a downscaled copy of the photo, not the camera original', async ({ page }) => {
+    await reachCatsStep(page);
+
+    // A phone-sized photo, made in the browser because nothing here ships a
+    // JPEG encoder. The noise matters: a flat colour compresses to almost
+    // nothing and the test would prove nothing about downscaling.
+    const dataUrl = await page.evaluate(() => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 2400;
+      canvas.height = 1800;
+      const context = canvas.getContext('2d');
+      if (context === null) throw new Error('no 2d context');
+      const image = context.createImageData(canvas.width, canvas.height);
+      for (let i = 0; i < image.data.length; i += 4) {
+        image.data[i] = (i * 7) % 255;
+        image.data[i + 1] = (i * 13) % 255;
+        image.data[i + 2] = (i * 29) % 255;
+        image.data[i + 3] = 255;
+      }
+      context.putImageData(image, 0, 0);
+      return canvas.toDataURL('image/jpeg', 0.95);
+    });
+    const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+    const buffer = Buffer.from(base64, 'base64');
+
+    await page.setInputFiles('#cat-photo', {
+      name: 'luna.jpg',
+      mimeType: 'image/jpeg',
+      buffer,
+    });
+    await expect(page.getByRole('button', { name: 'Quitar foto' })).toBeVisible();
+
+    await addCat(page, 'Luna');
+
+    const [stored] = await readStoredCats(page);
+    expect(stored?.photoType).toBe('image/jpeg');
+    expect(stored?.photoSize ?? 0).toBeGreaterThan(0);
+    // The stored copy is the 512 px avatar, not the original megabytes.
+    expect(stored?.photoSize ?? 0).toBeLessThan(buffer.byteLength / 4);
+  });
+
   test('offers the eight accents as a keyboard-reachable radio group', async ({ page }) => {
     await reachCatsStep(page);
 
@@ -129,5 +176,107 @@ test.describe('onboarding', () => {
     await expect(group.getByRole('radio')).toHaveCount(8);
     await expect(group.getByRole('radio', { name: 'miel' })).toBeVisible();
     await expect(group.getByRole('radio', { name: 'ciruela' })).toBeVisible();
+  });
+});
+
+test.describe('household screen', () => {
+  test('renames a cat and keeps the name across a reload', async ({ page }) => {
+    await completeOnboarding(page, ['Luna']);
+    await page.getByRole('button', { name: 'Tu casa' }).click();
+    await expect(page.getByRole('heading', { name: 'Tu casa' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Editar' }).click();
+    await page.getByLabel('Nombre').first().fill('Luna Belén');
+    await page.getByRole('button', { name: 'Guardar' }).click();
+
+    await expect(page.getByRole('listitem').filter({ hasText: 'Luna Belén' })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('listitem').filter({ hasText: 'Luna Belén' })).toBeVisible();
+  });
+
+  test('refuses a rename that collides with another cat', async ({ page }) => {
+    await completeOnboarding(page, ['Luna', 'Mia']);
+    await page.getByRole('button', { name: 'Tu casa' }).click();
+
+    await page.getByRole('button', { name: 'Editar' }).first().click();
+    await page.getByLabel('Nombre').first().fill('  mia ');
+    await page.getByRole('button', { name: 'Guardar' }).click();
+
+    await expect(page.getByRole('alert')).toContainText('Ya tienes un gato con ese nombre');
+    // Renaming a cat to the name it already has is not a collision, though.
+    await page.getByLabel('Nombre').first().fill('Luna');
+    await page.getByRole('button', { name: 'Guardar' }).click();
+    await expect(page.getByRole('alert')).toBeHidden();
+  });
+
+  test('adds a third cat after onboarding is over', async ({ page }) => {
+    await completeOnboarding(page, ['Luna', 'Mia']);
+    await page.getByRole('button', { name: 'Tu casa' }).click();
+
+    await page.getByLabel('Nombre').last().fill('Nube');
+    await page.getByRole('button', { name: 'Añadir gato' }).click();
+
+    await expect(page.getByRole('listitem').filter({ hasText: 'Nube' })).toBeVisible();
+    await expect(page.getByText('3 gatos en casa')).toBeVisible();
+  });
+
+  test('starting over asks first, then returns to onboarding', async ({ page }) => {
+    await completeOnboarding(page, ['Luna']);
+    await page.getByRole('button', { name: 'Tu casa' }).click();
+
+    await page.getByRole('button', { name: 'Borrar y empezar de cero' }).click();
+    // The confirmation is the point: one tap must not wipe a household.
+    await expect(page.getByRole('button', { name: 'Mejor no' })).toBeVisible();
+    await page.getByRole('button', { name: 'Mejor no' }).click();
+    await expect(page.getByRole('listitem').filter({ hasText: 'Luna' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Borrar y empezar de cero' }).click();
+    await page.getByRole('button', { name: 'Sí, bórralo todo' }).click();
+    await expect(page.getByRole('heading', { name: 'Tus gatos tienen vocabulario' })).toBeVisible();
+  });
+});
+
+test.describe('help screen', () => {
+  test('can be read at any time without touching the household', async ({ page }) => {
+    await completeOnboarding(page, ['Luna']);
+    await page.getByRole('button', { name: 'Ayuda' }).click();
+
+    await expect(page.getByRole('heading', { name: 'Cómo funciona' })).toBeVisible();
+    await expect(page.getByText(/no traduce/i)).toBeVisible();
+    // The privacy points are the onboarding copy, not a second version of it.
+    await expect(page.getByText(/Todo el análisis ocurre en este dispositivo/)).toBeVisible();
+
+    await page.getByRole('button', { name: 'Volver' }).click();
+    await expect(page.getByRole('heading', { name: 'Meowlogue debug' })).toBeVisible();
+  });
+
+  test('survives being opened straight from its own URL', async ({ page }) => {
+    await completeOnboarding(page, ['Luna']);
+    await page.goto('/#/help');
+    await expect(page.getByRole('heading', { name: 'Cómo funciona' })).toBeVisible();
+
+    // Back must stay inside the app even when there is no history to go back
+    // to, which is what a bookmarked hash looks like on a cold start.
+    await page.getByRole('button', { name: 'Volver' }).click();
+    await expect(page.getByRole('heading', { name: 'Meowlogue debug' })).toBeVisible();
+  });
+});
+
+test.describe('removing a cat', () => {
+  test('asks first, and names the cat it is about to remove', async ({ page }) => {
+    await completeOnboarding(page, ['Luna', 'Mia']);
+    await page.getByRole('button', { name: 'Tu casa' }).click();
+
+    await page.getByRole('button', { name: 'Editar' }).first().click();
+    await page.getByRole('button', { name: 'Quitar', exact: true }).click();
+
+    // Removing a cat cascades to its labels, so one tap must not do it.
+    await expect(page.getByText('¿Quitar a Luna?')).toBeVisible();
+    await expect(page.getByRole('listitem').filter({ hasText: 'Luna' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Sí, quitar' }).click();
+    await expect(page.getByRole('listitem').filter({ hasText: 'Luna' })).toBeHidden();
+    await expect(page.getByRole('listitem').filter({ hasText: 'Mia' })).toBeVisible();
+    await expect(page.getByText('1 gato en casa')).toBeVisible();
   });
 });

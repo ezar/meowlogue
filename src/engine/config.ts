@@ -1,3 +1,5 @@
+import type { GuardConfig, ModelUrls } from './types';
+
 /**
  * Meowlogue's detection policy.
  *
@@ -106,6 +108,40 @@ export const SEGMENTATION: SegmentationOptions = {
   envelopeHopMs: 10,
 };
 
+/**
+ * Guard policy handed to the engine (earshot 0.5.0).
+ *
+ * With guards configured, earshot skips the embedder for windows it rejects.
+ * That is most of the per-window cost — 17.0 ms falls to 7.3 ms on silence —
+ * and a cat household is mostly silence, so this is the single biggest saving
+ * available to the listening loop.
+ *
+ * **The default list cannot be used here.** earshot's `INTERFERENCE_CLASSES`
+ * is SteadyHum's: it exists to drop windows polluted by something other than
+ * the machine being listened to, and it lists `Cat`, `Dog` and `Bird` among
+ * the pollutants. In Meowlogue the cat is the signal. Passing the defaults
+ * would reject exactly the windows identity needs and silently leave every
+ * meow without an embedding.
+ *
+ * So the interference guard is switched off by an empty list, and only the
+ * level guards remain:
+ *
+ * - **silence** — a window below the floor holds no vocalization to embed.
+ *   The floor sits lower than earshot's -65 dBFS default because spec 6.2
+ *   treats purrs as quiet at distance, and a purr wrongly called silence
+ *   would lose its embedding.
+ * - **too-loud** — a clipped window's embedding describes the clipping.
+ *
+ * Human voice is deliberately *not* a guard. Spec 6.2 says an event that may
+ * be a person is stored and marked `possibleHuman`, not dropped, and the
+ * confirmation flow in 6.4 needs its embedding to exist.
+ */
+export const GUARDS: GuardConfig = {
+  silenceFloorDbfs: -72,
+  maxLevelDbfs: -3,
+  interferenceClasses: [],
+};
+
 /** Padding kept on each side of a stored clip, in milliseconds (spec 6.3). */
 export const CLIP_PADDING_MS = 300;
 
@@ -154,6 +190,31 @@ export const MODEL_URLS = {
   embedderUrl: `${MODEL_BASE_URL}yamnet-embedder.tflite`,
   wasmBaseUrl: `${MODEL_BASE_URL}wasm`,
 } as const;
+
+/**
+ * The model set to load for a session, with or without the embedder.
+ *
+ * The embedder is **13 MB**, three times the classifier, and about half of the
+ * per-window model cost. Spec 6.4 needs two cats before identity means
+ * anything — with one cat there is nobody to tell apart — so a one-cat
+ * household should not pay for it. earshot treats `embedderUrl` as optional
+ * and runs classifier-only when it is absent, reporting `hasEmbedder: false`.
+ *
+ * The decision itself is the app's: see `identityIsMeaningful` in
+ * `src/db/household.ts`. This function only assembles the URLs.
+ *
+ * @param options `embedder` false omits the embedder URL entirely.
+ */
+export function modelUrlsFor(options: { readonly embedder: boolean }): ModelUrls {
+  // A conditional spread rather than `embedderUrl: undefined`: under
+  // `exactOptionalPropertyTypes` an optional property must be absent, and
+  // earshot's worker branches on `=== undefined`.
+  return {
+    classifierUrl: MODEL_URLS.classifierUrl,
+    wasmBaseUrl: MODEL_URLS.wasmBaseUrl,
+    ...(options.embedder ? { embedderUrl: MODEL_URLS.embedderUrl } : {}),
+  };
+}
 
 /** Analysis windows retained for stacking an event's log-mel thumbnail. */
 export const THUMBNAIL_WINDOW_HISTORY = 24;

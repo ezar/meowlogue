@@ -61,6 +61,42 @@ export const en: Record<MessageKey, string> = {
   'color.slate': 'slate',
   'color.cocoa': 'cocoa',
 
+  'nav.home': 'Home',
+  'nav.household': 'Your household',
+  'nav.help': 'Help',
+  'nav.back': 'Back',
+
+  'household.title': 'Your household',
+  'household.subtitle':
+    'Add, remove or rename cats when the household changes. Changes are saved as you make them.',
+  'household.addTitle': 'Add another cat',
+  'household.edit': 'Edit',
+  'household.save': 'Save',
+  'household.cancel': 'Cancel',
+  'household.identityOn': 'With {count} cats, Meowlogue can learn who is calling.',
+  'household.identityOff':
+    'With a single cat, voice identity stays off and the model that trains it is not even downloaded.',
+  'household.removeConfirm': 'Remove {name}? Its labels go too.',
+  'household.removeYes': 'Yes, remove',
+  'household.dangerTitle': 'Start over',
+  'household.dangerBody':
+    'Deletes the cats, their labels and everything learned, and returns to the welcome screen. This cannot be undone.',
+  'household.dangerCta': 'Delete everything and start over',
+  'household.dangerConfirm': 'Yes, delete it all',
+  'household.dangerKeep': 'Keep it',
+
+  'help.title': 'How it works',
+  'help.honestyTitle': 'What it does not do',
+  'help.honesty':
+    'Meowlogue does not translate your cats. It learns your household\u2019s habits — who calls, when, and in what situation — and shows you how confident it is about each guess.',
+  'help.confidenceTitle': 'When it says \u201cnot sure\u201d',
+  'help.confidence':
+    'Every guess carries its confidence. Below 55% it gives you no name at all and asks you to confirm. And until it has 10 examples per cat and scores 80% on its own self-test, it shows no identity guesses whatsoever.',
+  'help.privacyTitle': 'Where the audio is',
+  'help.modelsTitle': 'The models',
+  'help.models':
+    'The first listening session downloads about 23 MB of models and keeps them for later ones. With a single cat it saves 13 MB: the identity model is pointless with nobody to tell apart.',
+
   'label.food': 'food',
   'label.door': 'door',
   'label.attention': 'attention',

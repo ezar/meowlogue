@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { identityIsMeaningful } from '@/db/household';
 import { db } from '@/db/schema';
+import { useI18n } from '@/i18n';
+import { navigate } from '@/lib/route';
 import { useDebugStore } from './state/useDebugStore';
 import { EngineStatusBanner } from './components/EngineStatusBanner';
 import { EventRow } from './components/EventRow';
@@ -18,6 +20,7 @@ import { summarizeSession } from '@/lib/debug-session';
  * (Listen, Timeline, Insights) arrives in M1.
  */
 export function DebugPage() {
+  const { t } = useI18n();
   const status = useDebugStore((state) => state.status);
   const level = useDebugStore((state) => state.level);
   const events = useDebugStore((state) => state.events);
@@ -58,6 +61,28 @@ export function DebugPage() {
         <p className="mt-1 text-sm text-stone-600">
           M0 pipeline check. Audio never leaves this device.
         </p>
+        {/* The only way back into the household or the explanation: this page
+            is the app's home until M1's Listen screen exists. */}
+        <nav className="mt-3 flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              navigate('household');
+            }}
+            className="rounded-lg bg-stone-100 px-3 py-2 text-sm font-medium text-stone-800"
+          >
+            {t('nav.household')}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              navigate('help');
+            }}
+            className="rounded-lg bg-stone-100 px-3 py-2 text-sm font-medium text-stone-800"
+          >
+            {t('nav.help')}
+          </button>
+        </nav>
       </header>
 
       <EngineStatusBanner status={status} />

@@ -35,49 +35,7 @@ test.describe('debug page', () => {
     await expect(page.getByText('975 ms / 487.5 ms')).toBeVisible();
   });
 
-  test('reports the engine failure in plain language instead of crashing', async ({ page }) => {
-    await page.goto('/');
-    await page.getByRole('button', { name: 'Start listening' }).click();
-
-    // Until earshot can resolve MediaPipe inside its worker (see the note
-    // below) this is what a real user sees. It must be a stated error, not a
-    // spinner that never resolves: honesty is a product principle (spec 2).
-    const status = page.getByRole('status');
-    await expect(status).toContainText('Engine error', { timeout: 60_000 });
-    await expect(status).toContainText('@mediapipe/tasks-audio');
-    await expect(page.getByRole('heading', { name: 'Meowlogue debug' })).toBeVisible();
-  });
-
-  /**
-   * BLOCKED on earshot, not on Meowlogue.
-   *
-   * earshot v0.3.0's worker loads MediaPipe with a bare dynamic specifier
-   * (`await import('@mediapipe/tasks-audio')`, marked `@vite-ignore`), which a
-   * browser cannot resolve: there are no import maps in a module worker. The
-   * loader override that would fix it, `ModelUrls.loadTasksAudio`, is a function
-   * and so cannot cross `postMessage` — `EngineOptions.models` is typed
-   * `Omit<ModelUrls, 'loadTasksAudio'>` precisely because of that, and the
-   * worker protocol omits it too.
-   *
-   * The browser therefore fails at `createEngine` with:
-   *   earshot: Failed to resolve module specifier '@mediapipe/tasks-audio'
-   *
-   * There is no app-side fix. Aliasing cannot help (`@vite-ignore` stops Vite
-   * touching the import), import maps do not apply to module workers, and
-   * reimplementing the worker here is forbidden by CLAUDE.md.
-   *
-   * The fix belongs in earshot, and is small: make `earshot/worker` import
-   * `@mediapipe/tasks-audio` statically so the consuming app's bundler resolves
-   * it while building the worker. That keeps MediaPipe out of the *core* bundle
-   * — the reason for the dynamic import — because the worker is already a
-   * separate entry point. Alternatively, carry a module URL (a string, so it is
-   * serializable) in the init message.
-   *
-   * Tracked in docs/decisions/0003-earshot-worker-cannot-resolve-mediapipe.md.
-   * These stay in the suite rather than being deleted, so the day earshot ships
-   * that fix they are the check that it worked: drop the `.fixme` and run.
-   */
-  test.fixme('loads the models and reaches the listening state', async ({ page }) => {
+  test('loads the models and reaches the listening state', async ({ page }) => {
     const failures: string[] = [];
     page.on('console', (message) => {
       if (message.type() === 'error') failures.push(message.text());
@@ -94,16 +52,18 @@ test.describe('debug page', () => {
     await expect(page.getByRole('status')).toContainText('Listening', { timeout: 90_000 });
     await expect(page.getByRole('button', { name: 'Stop' })).toBeVisible();
 
-    // The level meter only reports once windows are coming out of the worker,
-    // which means capture, framing and inference are all alive.
-    await expect(page.getByText('Noise floor', { exact: false })).not.toContainText('—', {
-      timeout: 30_000,
-    });
+    // The meter only carries a level once windows are coming out of the
+    // worker, so this is the proof that capture, framing and inference are all
+    // alive. Addressed by role rather than by text: the detection-policy panel
+    // also says "noise floor", and a text locator matches both.
+    const meter = page.getByRole('meter', { name: 'Input level' });
+    await expect(meter).toHaveAttribute('aria-valuetext', /dBFS/, { timeout: 30_000 });
+    await expect(meter).not.toHaveAttribute('aria-valuetext', 'not listening');
 
     expect(failures, `browser reported: ${failures.join(' | ')}`).toEqual([]);
   });
 
-  test.fixme('fetches both models and the WASM runtime from its own origin', async ({ page }) => {
+  test('fetches both models and the WASM runtime from its own origin', async ({ page }) => {
     const assets = new Map<string, number>();
     page.on('response', (response) => {
       const url = new URL(response.url());
@@ -125,7 +85,7 @@ test.describe('debug page', () => {
     }
   });
 
-  test.fixme('stops cleanly and returns to idle', async ({ page }) => {
+  test('stops cleanly and returns to idle', async ({ page }) => {
     await page.goto('/');
 
     await page.getByRole('button', { name: 'Start listening' }).click();

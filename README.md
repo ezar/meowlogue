@@ -41,10 +41,11 @@ window producer backed by a worker, and a vocalization detector — and
 earshot's units and its own. See
 [decision 0002](docs/decisions/0002-the-seam-is-a-directory.md).
 
-**The live pipeline does not run yet.** earshot's worker loads MediaPipe
-through a bare module specifier that no browser can resolve, and the override
-that would fix it cannot cross into a worker. The debug page says so plainly
-instead of hanging. Full analysis, and the small change earshot needs, in
+**The model path needs a build, not `pnpm dev`.** Vite serves workers as ES
+modules in development whatever `worker.format` says, and MediaPipe cannot load
+in a module worker — so pressing Start under `pnpm dev` fails. Use
+`pnpm build && pnpm preview`, or `pnpm test:e2e`. Capture, levels, features,
+pitch and segmentation touch no model and work in dev. Background in
 [decision 0003](docs/decisions/0003-earshot-worker-cannot-resolve-mediapipe.md).
 
 ## Getting started

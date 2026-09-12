@@ -12,8 +12,8 @@ importers:
         specifier: 0.10.21
         version: 0.10.21
       earshot:
-        specifier: github:ezar/earshot#v0.3.0
-        version: git+https://git@github.com:ezar/earshot.git#f23f60846b09f07ad5fbfe26b3d269eba1b2d848(@mediapipe/tasks-audio@0.10.21)
+        specifier: github:ezar/earshot#v0.4.0
+        version: git+https://git@github.com:ezar/earshot.git#89985129740094753ab484cb1921715095562b45(@mediapipe/tasks-audio@0.10.21)
       react:
         specifier: ^19.3.0
         version: 19.3.0
@@ -885,9 +885,9 @@ packages:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
 
-  earshot@git+https://git@github.com:ezar/earshot.git#f23f60846b09f07ad5fbfe26b3d269eba1b2d848:
-    resolution: {commit: f23f60846b09f07ad5fbfe26b3d269eba1b2d848, repo: git@github.com:ezar/earshot.git, type: git}
-    version: 0.3.0
+  earshot@git+https://git@github.com:ezar/earshot.git#89985129740094753ab484cb1921715095562b45:
+    resolution: {commit: 89985129740094753ab484cb1921715095562b45, repo: git@github.com:ezar/earshot.git, type: git}
+    version: 0.4.0
     peerDependencies:
       '@huggingface/transformers': '>=3'
       '@mediapipe/tasks-audio': '>=0.10'
@@ -2353,7 +2353,7 @@ snapshots:
 
   detect-libc@2.1.2: {}
 
-  earshot@git+https://git@github.com:ezar/earshot.git#f23f60846b09f07ad5fbfe26b3d269eba1b2d848(@mediapipe/tasks-audio@0.10.21):
+  earshot@git+https://git@github.com:ezar/earshot.git#89985129740094753ab484cb1921715095562b45(@mediapipe/tasks-audio@0.10.21):
     optionalDependencies:
       '@mediapipe/tasks-audio': 0.10.21
 

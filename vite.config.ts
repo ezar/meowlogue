@@ -28,7 +28,16 @@ export default defineConfig({
     exclude: ['earshot'],
   },
   worker: {
-    format: 'es',
+    /**
+     * Classic, not ES module: MediaPipe loads its WASM glue with
+     * `importScripts`, which a module worker does not support, and its
+     * fallback wants a `document` a worker does not have. Required from
+     * earshot 0.4.0 onwards.
+     *
+     * This setting is global in Vite, so any worker Meowlogue adds of its own
+     * — the nightly aggregation worker in spec section 7 — has to be IIFE too.
+     */
+    format: 'iife',
   },
   build: {
     target: 'es2022',

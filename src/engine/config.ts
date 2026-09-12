@@ -1,4 +1,4 @@
-import type { ModelUrls } from './types';
+import type { GuardConfig, ModelUrls } from './types';
 
 /**
  * Meowlogue's detection policy.
@@ -106,6 +106,40 @@ export const SEGMENTATION: SegmentationOptions = {
   mergeGapMs: 250,
   debounceMs: 500,
   envelopeHopMs: 10,
+};
+
+/**
+ * Guard policy handed to the engine (earshot 0.5.0).
+ *
+ * With guards configured, earshot skips the embedder for windows it rejects.
+ * That is most of the per-window cost — 17.0 ms falls to 7.3 ms on silence —
+ * and a cat household is mostly silence, so this is the single biggest saving
+ * available to the listening loop.
+ *
+ * **The default list cannot be used here.** earshot's `INTERFERENCE_CLASSES`
+ * is SteadyHum's: it exists to drop windows polluted by something other than
+ * the machine being listened to, and it lists `Cat`, `Dog` and `Bird` among
+ * the pollutants. In Meowlogue the cat is the signal. Passing the defaults
+ * would reject exactly the windows identity needs and silently leave every
+ * meow without an embedding.
+ *
+ * So the interference guard is switched off by an empty list, and only the
+ * level guards remain:
+ *
+ * - **silence** — a window below the floor holds no vocalization to embed.
+ *   The floor sits lower than earshot's -65 dBFS default because spec 6.2
+ *   treats purrs as quiet at distance, and a purr wrongly called silence
+ *   would lose its embedding.
+ * - **too-loud** — a clipped window's embedding describes the clipping.
+ *
+ * Human voice is deliberately *not* a guard. Spec 6.2 says an event that may
+ * be a person is stored and marked `possibleHuman`, not dropped, and the
+ * confirmation flow in 6.4 needs its embedding to exist.
+ */
+export const GUARDS: GuardConfig = {
+  silenceFloorDbfs: -72,
+  maxLevelDbfs: -3,
+  interferenceClasses: [],
 };
 
 /** Padding kept on each side of a stored clip, in milliseconds (spec 6.3). */

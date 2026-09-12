@@ -2,6 +2,8 @@ import { HOP_SECONDS, SAMPLE_RATE_HZ, WINDOW_SECONDS } from 'earshot';
 import { describe, expect, it } from 'vitest';
 import {
   CAPTURE,
+  EARSHOT_INTERFERENCE_CLASSES,
+  GUARDS,
   MODEL_URLS,
   modelUrlsFor,
   SEGMENTATION,
@@ -208,5 +210,27 @@ describe('modelUrlsFor', () => {
     expect('embedderUrl' in urls).toBe(false);
     expect(urls.classifierUrl).toBe(MODEL_URLS.classifierUrl);
     expect(urls.wasmBaseUrl).toBe(MODEL_URLS.wasmBaseUrl);
+  });
+});
+
+describe('GUARDS', () => {
+  it('does not treat a cat as interference, whatever earshot defaults to', () => {
+    // earshot's list is SteadyHum's: there a cat is something polluting the
+    // recording. Passing those defaults here would reject exactly the windows
+    // identity needs, and every meow would lose its embedding with no error.
+    expect(EARSHOT_INTERFERENCE_CLASSES).toContain('Cat');
+    expect(GUARDS.interferenceClasses).toEqual([]);
+  });
+
+  it('keeps a floor low enough for a purr at distance', () => {
+    // Spec 6.2 treats purrs as quiet, which is why their class threshold is
+    // the lowest of the five. A floor at earshot's -65 dBFS default could call
+    // a distant purr silence and skip its embedding.
+    expect(GUARDS.silenceFloorDbfs).toBeLessThan(-65);
+  });
+
+  it('still rejects a clipped window', () => {
+    // An embedding of a clipped window describes the clipping.
+    expect(GUARDS.maxLevelDbfs).toBe(-3);
   });
 });

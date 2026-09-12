@@ -2,6 +2,7 @@ import { createCapture, createEventDetector, createEngine } from 'earshot';
 import workletUrl from 'earshot/capture-worklet?url';
 import workerUrl from 'earshot/worker?worker&url';
 import {
+  GUARDS,
   MODEL_URLS,
   SEGMENTATION,
   THRESHOLDS,
@@ -182,7 +183,10 @@ export function createListener(options: ListenerOptions = {}): Listener {
       setStatus({ kind: 'loading-models' });
 
       try {
-        const startedEngine = await createEngine({ workerUrl, models });
+        // `guards` lets earshot skip the embedder for windows it rejects,
+        // which is most of the per-window cost in a quiet house. The policy
+        // is Meowlogue's, not earshot's defaults: see `GUARDS`.
+        const startedEngine = await createEngine({ workerUrl, models, guards: GUARDS });
         engine = startedEngine;
         hasEmbedder = startedEngine.hasEmbedder;
 

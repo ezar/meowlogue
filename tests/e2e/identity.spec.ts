@@ -124,6 +124,26 @@ test.describe('identity', () => {
     );
   });
 
+  test('says who it thinks called on the event detail too', async ({ page }) => {
+    await completeOnboarding(page, ['Luna', 'Mia']);
+    const cats = await catIds(page);
+    await seedConfirmedVoices(
+      page,
+      [
+        { catId: cats['Luna'] ?? '', voice: 0 },
+        { catId: cats['Mia'] ?? '', voice: 1 },
+      ],
+      12,
+    );
+    await seedUnconfirmedVoice(page, 'query-1', 1);
+
+    // The detail is a second place the same guess can be shown, and a second
+    // chance to word it differently. It must not.
+    await page.goto('/#/event/query-1');
+    await expect(page.getByRole('heading', { name: 'La vocalización' })).toBeVisible();
+    await expect(page.getByText(/Creo que ha sido Mia · \d+%/)).toBeVisible();
+  });
+
   test('shows the self-test where spec 6.4 says it belongs', async ({ page }) => {
     await completeOnboarding(page, ['Luna', 'Mia']);
     const cats = await catIds(page);

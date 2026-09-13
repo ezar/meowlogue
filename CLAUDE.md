@@ -40,6 +40,9 @@ only in i18n dictionaries — Spanish default, English second. i18n arrives in M
   owns the worker, and the two screens' worth of status copy. Training is
   quadratic in the confirmed set (measured: 17 ms at 20 examples, 177 ms at
   100, 6 s at 600), so it never runs on the main thread.
+- `src/timeline/` — the history (spec 5.1): the filtered list, and one event
+  in full. The filtering and day grouping are pure and live in
+  `src/lib/timeline.ts`; the screens only render them.
 - `src/lib/` — app-side logic with no DOM or engine dependency where possible,
   so it is unit-testable and can later move into a worker.
 - `src/debug/` — the M0 debug page. It is scaffolding for tuning, not product.

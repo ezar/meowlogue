@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
   addCat,
+  catRow,
   clearHousehold,
   completeOnboarding,
   reachCatsStep,
@@ -217,7 +218,7 @@ test.describe('household screen', () => {
     await page.getByLabel('Nombre').last().fill('Nube');
     await page.getByRole('button', { name: 'Añadir gato' }).click();
 
-    await expect(page.getByRole('listitem').filter({ hasText: 'Nube' })).toBeVisible();
+    await expect(catRow(page, 'Nube')).toBeVisible();
     await expect(page.getByText('3 gatos en casa')).toBeVisible();
   });
 
@@ -273,11 +274,11 @@ test.describe('removing a cat', () => {
 
     // Removing a cat cascades to its labels, so one tap must not do it.
     await expect(page.getByText('¿Quitar a Luna?')).toBeVisible();
-    await expect(page.getByRole('listitem').filter({ hasText: 'Luna' })).toBeVisible();
+    await expect(catRow(page, 'Luna')).toBeVisible();
 
     await page.getByRole('button', { name: 'Sí, quitar' }).click();
-    await expect(page.getByRole('listitem').filter({ hasText: 'Luna' })).toBeHidden();
-    await expect(page.getByRole('listitem').filter({ hasText: 'Mia' })).toBeVisible();
+    await expect(catRow(page, 'Luna')).toBeHidden();
+    await expect(catRow(page, 'Mia')).toBeVisible();
     await expect(page.getByText('1 gato en casa')).toBeVisible();
   });
 });

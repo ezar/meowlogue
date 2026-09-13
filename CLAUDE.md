@@ -35,6 +35,11 @@ only in i18n dictionaries — Spanish default, English second. i18n arrives in M
   in the spec's units; `vocalization.ts` is the pure translation layer
   (seconds/milliseconds, labels, per-class thresholds); `listener.ts` composes
   capture, engine and detector; `mel.ts` stacks thumbnails.
+- `src/identity/` — "who was that?" (spec 6.4). The policy lives in
+  `src/engine/identity.ts`; this is the worker that runs it, the store that
+  owns the worker, and the two screens' worth of status copy. Training is
+  quadratic in the confirmed set (measured: 17 ms at 20 examples, 177 ms at
+  100, 6 s at 600), so it never runs on the main thread.
 - `src/lib/` — app-side logic with no DOM or engine dependency where possible,
   so it is unit-testable and can later move into a worker.
 - `src/debug/` — the M0 debug page. It is scaffolding for tuning, not product.
@@ -83,6 +88,10 @@ model and work fine in dev.
 
 `worker.format` is `'iife'` for the same reason, and it is **global** in Vite:
 the nightly aggregation worker in spec section 7 will have to be IIFE too.
+
+Meowlogue's own identity worker is the exception that proves the rule: it
+loads no model and touches no WASM, so it runs under `pnpm dev` as happily as
+in a build.
 
 ## Milestones
 

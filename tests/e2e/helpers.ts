@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 /**
  * Shared setup for the end-to-end specs.
@@ -79,14 +79,17 @@ export async function completeOnboarding(
  * actually landed on disk, so it should not go through the same library the
  * app used to put it there.
  */
-export async function readStoredCats(
-  page: Page,
-): Promise<
-  readonly { readonly name: string; readonly photoSize: number; readonly photoType: string }[]
+export async function readStoredCats(page: Page): Promise<
+  readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly photoSize: number;
+    readonly photoType: string;
+  }[]
 > {
   return page.evaluate(
     async (name: string) =>
-      new Promise<readonly { name: string; photoSize: number; photoType: string }[]>(
+      new Promise<readonly { id: string; name: string; photoSize: number; photoType: string }[]>(
         (resolve, reject) => {
           const open = indexedDB.open(name);
           open.onerror = () => {
@@ -99,9 +102,10 @@ export async function readStoredCats(
               reject(new Error('could not read the cats'));
             };
             request.onsuccess = () => {
-              const rows = request.result as { name: string; photo?: Blob }[];
+              const rows = request.result as { id: string; name: string; photo?: Blob }[];
               resolve(
                 rows.map((row) => ({
+                  id: row.id,
                   name: row.name,
                   photoSize: row.photo?.size ?? 0,
                   photoType: row.photo?.type ?? '',
@@ -203,4 +207,167 @@ export async function readStoredEvents(page: Page): Promise<
       ),
     DATABASE,
   );
+}
+
+/** One cat's confirmed voice, for {@link seedConfirmedVoices}. */
+export interface SeededVoice {
+  readonly catId: string;
+  /**
+   * Which synthetic voice this cat has. Two different indices are
+   * distinguishable; the same index twice is a household of littermates the
+   * classifier cannot possibly learn, which is the case the honesty gate of
+   * spec 6.4 has to survive.
+   */
+  readonly voice: number;
+}
+
+/**
+ * Seeds a trained household: confirmed events with embeddings, per cat.
+ *
+ * Identity cannot be reached through the UI in a test — it needs ten real
+ * meows per cat — and it is the one feature whose whole point is what it
+ * refuses to say before it has them. So the confirmed set is written directly,
+ * with synthetic embeddings whose geometry is known: the same construction the
+ * unit fixtures use, a unit direction per voice plus a deterministic wobble.
+ *
+ * @param page The page under test.
+ * @param voices One entry per cat, naming its synthetic voice.
+ * @param perCat Confirmed examples to write for each cat.
+ */
+export async function seedConfirmedVoices(
+  page: Page,
+  voices: readonly SeededVoice[],
+  perCat: number,
+): Promise<void> {
+  await page.evaluate(
+    async ([name, seeds, count]) =>
+      new Promise<void>((resolve, reject) => {
+        const dimensions = 1024;
+        const hash = (a: number, b: number, c: number): number => {
+          const value = Math.sin(a * 12.9898 + b * 78.233 + c * 37.719) * 43758.5453;
+          return (value - Math.floor(value)) * 2 - 1;
+        };
+        const embedding = (voice: number, example: number): Float32Array => {
+          const raw = Array.from(
+            { length: dimensions },
+            (_, i) =>
+              Math.cos((i + 1) * 0.21 * (voice + 1)) + 0.05 * hash(i + 1, example + 1, voice + 1),
+          );
+          return Float32Array.from(raw);
+        };
+
+        const open = indexedDB.open(name);
+        open.onerror = () => {
+          reject(new Error('could not open the database'));
+        };
+        open.onsuccess = () => {
+          const database = open.result;
+          const store = database.transaction('events', 'readwrite').objectStore('events');
+          let index = 0;
+          for (const seed of seeds) {
+            for (let example = 0; example < count; example += 1) {
+              index += 1;
+              const mean = embedding(seed.voice, example);
+              store.put({
+                id: `seed-${seed.catId}-${example}`,
+                startedAt: Date.UTC(2026, 8, 12, 8, 0, 0) + index * 60_000,
+                durationMs: 500 + seed.voice * 120,
+                type: 'meow',
+                triggerLabel: 'Meow',
+                confidence: 0.72,
+                syllables: 2,
+                peakDbfs: -18.4,
+                possibleHuman: false,
+                medianF0Hz: 480 + seed.voice * 60,
+                contourSlopeSemitonesPerSecond: 4 - seed.voice,
+                voicedFraction: 0.8,
+                spectralCentroidHz: 1400,
+                embeddingMean: mean,
+                embeddingMax: Float32Array.from(mean, (value) => value + 0.1),
+                embeddingWindows: 3,
+                catId: seed.catId,
+                confirmedAt: Date.UTC(2026, 8, 12, 8, 30, 0),
+              });
+            }
+          }
+          const transaction = store.transaction;
+          transaction.oncomplete = () => {
+            database.close();
+            resolve();
+          };
+          transaction.onerror = () => {
+            reject(new Error('could not write the confirmed events'));
+          };
+        };
+      }),
+    [DATABASE, voices, perCat] as const,
+  );
+}
+
+/**
+ * Seeds one unconfirmed event carrying a voice, so identity has something to
+ * guess about.
+ *
+ * @param page The page under test.
+ * @param id The event id.
+ * @param voice Which synthetic voice it sounds like.
+ */
+export async function seedUnconfirmedVoice(page: Page, id: string, voice: number): Promise<void> {
+  await page.evaluate(
+    async ([name, eventId, voiceIndex]) =>
+      new Promise<void>((resolve, reject) => {
+        const dimensions = 1024;
+        const mean = Float32Array.from({ length: dimensions }, (_, i) =>
+          Math.cos((i + 1) * 0.21 * (voiceIndex + 1)),
+        );
+        const open = indexedDB.open(name);
+        open.onerror = () => {
+          reject(new Error('could not open the database'));
+        };
+        open.onsuccess = () => {
+          const database = open.result;
+          const store = database.transaction('events', 'readwrite').objectStore('events');
+          const request = store.put({
+            id: eventId,
+            startedAt: Date.UTC(2026, 8, 12, 10, 5, 0),
+            durationMs: 500 + voiceIndex * 120,
+            type: 'meow',
+            triggerLabel: 'Meow',
+            confidence: 0.72,
+            syllables: 2,
+            peakDbfs: -18.4,
+            possibleHuman: false,
+            medianF0Hz: 480 + voiceIndex * 60,
+            contourSlopeSemitonesPerSecond: 4 - voiceIndex,
+            voicedFraction: 0.8,
+            spectralCentroidHz: 1400,
+            embeddingMean: mean,
+            embeddingMax: Float32Array.from(mean, (value) => value + 0.1),
+            embeddingWindows: 3,
+          });
+          request.onerror = () => {
+            reject(new Error('could not write the event'));
+          };
+          request.onsuccess = () => {
+            database.close();
+            resolve();
+          };
+        };
+      }),
+    [DATABASE, id, voice] as const,
+  );
+}
+
+/**
+ * One cat's row in the household list.
+ *
+ * Scoped to the named list rather than to any list item on the page: the
+ * voices section of spec 6.4 is a second list of the same cats, so "the item
+ * that mentions Luna" stopped being one element the moment it existed.
+ */
+export function catRow(page: Page, name: string): Locator {
+  return page
+    .getByRole('list', { name: 'Tus gatos' })
+    .getByRole('listitem')
+    .filter({ hasText: name });
 }

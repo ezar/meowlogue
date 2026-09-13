@@ -131,7 +131,15 @@ export async function readStoredCats(page: Page): Promise<
  */
 export async function seedEvent(
   page: Page,
-  event: { readonly id: string; readonly type: string; readonly startedAt: number },
+  event: {
+    readonly id: string;
+    readonly type: string;
+    readonly startedAt: number;
+    /** Cat the user confirmed; `confirmedAt` is set alongside it. */
+    readonly catId?: string;
+    readonly labelId?: string;
+    readonly notACat?: boolean;
+  },
 ): Promise<void> {
   await page.evaluate(
     async ([name, row]) =>
@@ -157,6 +165,7 @@ export async function seedEvent(
       DATABASE,
       {
         ...event,
+        ...(event.catId === undefined ? {} : { confirmedAt: event.startedAt + 1000 }),
         durationMs: 640,
         triggerLabel: 'Meow',
         confidence: 0.72,

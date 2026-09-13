@@ -5,6 +5,8 @@ import { Onboarding } from '@/onboarding/Onboarding';
 import { HouseholdScreen } from '@/household/HouseholdScreen';
 import { HelpScreen } from '@/help/HelpScreen';
 import { ListenScreen } from '@/listen/ListenScreen';
+import { TimelineScreen } from '@/timeline/TimelineScreen';
+import { EventScreen } from '@/timeline/EventScreen';
 import { useRoute } from '@/lib/route';
 import { DebugPage } from './debug/DebugPage';
 
@@ -31,7 +33,11 @@ function Shell() {
   if (completed === null) return null;
   if (!completed) return <Onboarding />;
 
-  switch (route) {
+  switch (route.kind) {
+    case 'timeline':
+      return <TimelineScreen />;
+    case 'event':
+      return <EventScreen eventId={route.id} />;
     case 'household':
       return <HouseholdScreen />;
     case 'help':

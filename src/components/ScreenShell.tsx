@@ -25,7 +25,7 @@ export function ScreenShell({ title, children }: Props) {
         <button
           type="button"
           onClick={() => {
-            navigate('home');
+            navigate({ kind: 'home' });
           }}
           className="-ml-1 rounded-lg px-1 py-1 text-sm font-medium text-stone-600"
         >
